@@ -35,7 +35,14 @@ def merge_scene_bands(date, outpath, res=10, bands = ['B02', 'B03', 'B04', 'B08'
     write_raster(outpath, merged_stack, tif, merge_trans)
 
 def mask_raster(shp, mask_path, outpath):
-    m_src = rio.open(mask_path)
+    assert isinstance(outpath, str)
+    assert isinstance(mask_path, str) or isinstance(mask_path, rio.DatasetReader)
+
+    if isinstance(mask_path, str):
+        m_src = rio.open(mask_path)
+    else:
+        m_src = mask_path
+    
     shp = shp.to_crs(m_src.crs)
     mask_arr, mask_trans = mask(m_src, 
                                 shapes=shp['geometry'], 

@@ -60,7 +60,12 @@ class PointExtractor:
         return transform(in_proj, out_proj, self.p.x, self.p.y)
 
 def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
-    tif = rio.open(path)
+    assert isinstance(path, str) or isinstance(path, rio.DatasetReader)
+    if isinstance(path, str):
+        tif = rio.open(path)
+    else:
+        tif = path
+    
     df = df.to_crs(tif.crs)
     arr = tif.read(list(pl.arange(tif.count) + 1))
     
