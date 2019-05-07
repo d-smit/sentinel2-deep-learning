@@ -1,0 +1,25 @@
+affine==2.2.2
+attrs==19.1.0
+Click==7.0
+click-plugins==1.1.1
+cligj==0.5.0
+cycler==0.10.0
+Fiona==1.8.6
+geopandas==0.5.0
+kiwisolver==1.1.0
+-e git+ssh://git@git.surfaceintelligence.com:8822/alexey/lc_gsi.git@303fabb4b711ce073ede844418f64c8f429324e1#egg=land_classification&subdirectory=land_classification
+matplotlib==3.0.3
+munch==2.3.2
+numpy==1.16.3
+pandas==0.24.2
+pyparsing==2.4.0
+pyproj==2.1.3
+python-dateutil==2.8.0
+pytz==2019.1
+rasterio==1.0.22
+scikit-learn==0.20.3
+scipy==1.2.1
+seaborn==0.9.0
+Shapely==1.6.4.post2
+six==1.12.0
+snuggs==1.4.3
