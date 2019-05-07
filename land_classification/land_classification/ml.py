@@ -4,11 +4,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 import pylab as pl
 import seaborn as sns
-from .preprocessing import create_raster_df
+from .preprocessing import create_raster_df, create_zero_samples
 from .raster import calc_indices
 from .io import write_raster
 
-def classify(df, pred_path='data/masked.tif', cv=True, name='mlp', algorithm=MLPClassifier()):
+def classify(df, pred_path='data/masked.tif', cv=True, name='mlp', algorithm=MLPClassifier()):    
+
     X = df.drop(['Lat', 'Lon', 'geometry', 'Val', 'labels'], axis=1)
     y = df[['labels']]
     mask_src = rio.open(pred_path)
@@ -21,7 +22,7 @@ def classify(df, pred_path='data/masked.tif', cv=True, name='mlp', algorithm=MLP
     else:
         X_train, y_train = X, y
     cls = algorithm
-    cls.fit(X_train, y_train)
+    cls.fit(X_train, y_train['labels'].ravel())
     pred = cls.predict(gdf).reshape(1, data.shape[1], data.shape[2]).astype(pl.int16)
     proba = cls.predict_proba(gdf).max(axis=1).reshape(1, data.shape[1], data.shape[2])
     write_raster("lc_10m_{}_pred.tif".format(name), pred, profile)

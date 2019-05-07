@@ -28,3 +28,9 @@ def create_raster_df(pred_array, bands=['B02', 'B03', 'B04', 'B08'], indices=Fal
     if indices:
         gdf = calc_indices(gdf)
     return gdf
+
+def create_zero_samples(df):
+    zero_cols = list(np.zeros(len(index_cols)).astype(int))
+    label_col = [0]
+    na_df = gpd.GeoDataFrame(np.ones((1000, len(df.columns) + 1)) * ([-9999, -9999, -9999, -9999] + zero_cols + label_col), columns = list(df.columns))
+    df = df.append(na_df).astype(np.int16)
