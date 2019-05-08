@@ -2,7 +2,7 @@ import rasterio as rio
 from glob import glob
 import pylab as pl
 
-def write_raster(name, data, profile):
+def write_raster(name, data, profile, nodata=-9999):
     """
     Wrapper for writing multiband rasters.
     
@@ -17,7 +17,7 @@ def write_raster(name, data, profile):
         "count": data.shape[0],
         "height": data.shape[1],
         "width": data.shape[2],
-        "nodata": -9999,
+        "nodata": nodata,
         "dtype": data.dtype
     })
     

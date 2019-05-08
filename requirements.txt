@@ -7,7 +7,7 @@ cycler==0.10.0
 Fiona==1.8.6
 geopandas==0.5.0
 kiwisolver==1.1.0
--e git+ssh://git@git.surfaceintelligence.com:8822/alexey/lc_gsi.git@303fabb4b711ce073ede844418f64c8f429324e1#egg=land_classification&subdirectory=land_classification
+-e land_classification
 matplotlib==3.0.3
 munch==2.3.2
 numpy==1.16.3

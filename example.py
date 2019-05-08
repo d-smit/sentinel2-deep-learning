@@ -19,10 +19,13 @@ lc.mask_raster(aoi, 'data/merged.tif', 'data/masked.tif')
 
 bands = ['B02', 'B03', 'B04', 'B08']
 pe = lc.PointExtractor(aoi)
-points_df = pe.get_n(3000)
+points_df = pe.get_n(7000)
 
-points_df = lc.sample_raster(points_df, 'data/Corine_10m_OS_AoI1.tif', bands=['labels'])
+points_df = lc.sample_raster(points_df, 'data/Corine_Orig_10m_OS_AoI1.tif', bands=['labels'])
 points_df = lc.sample_raster(points_df, 'data/masked.tif', bands = bands)
-points_df = lc.calc_indices(points_df)
 
-lc.classify(points_df)
+clean_df = lc.remove_outliers(points_df, indices=False)
+clean_df = lc.create_zero_samples(clean_df)
+clean_df = lc.calc_indices(clean_df)
+
+lc.classify(clean_df)

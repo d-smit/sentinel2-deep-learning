@@ -23,14 +23,15 @@ def remove_outliers(df, bands=['B02', 'B03', 'B04', 'B08'], indices=False):
 
 
 def create_raster_df(pred_array, bands=['B02', 'B03', 'B04', 'B08'], indices=False):
-    X_pred = pred_array.reshape(pred_array.shape[0], pl.array(pred_array.shape[1:]).prod()).T
+    X_pred = pred_array.reshape(pred_array.shape[0],
+                                pl.array(pred_array.shape[1:]).prod()).T
     gdf = GeoDataFrame(X_pred, columns = bands)
     if indices:
         gdf = calc_indices(gdf)
     return gdf
 
-def create_zero_samples(df):
-    zero_cols = list(np.zeros(len(index_cols)).astype(int))
+def create_zero_samples(df, bands=['B02', 'B03', 'B04', 'B08', 'labels']):
     label_col = [0]
-    na_df = gpd.GeoDataFrame(np.ones((1000, len(df.columns) + 1)) * ([-9999, -9999, -9999, -9999] + zero_cols + label_col), columns = list(df.columns))
-    df = df.append(na_df).astype(np.int16)
+    na_df = GeoDataFrame(pl.ones((1000, len(df.columns))) * ([-9999, -9999, -9999, -9999] + label_col), columns = list(df.columns))
+    df = df.append(na_df).astype(pl.int16)
+    return df

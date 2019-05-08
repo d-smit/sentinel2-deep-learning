@@ -55,6 +55,7 @@ class PointExtractor:
         Convert from original shapefile projection to WGS84
         """
         in_proj = Proj(init=self.shp.crs['init'])
+        Proj(init=self.shp.crs['init'])
         #out_proj = in_proj
         out_proj = Proj(init='epsg:4326')
         return transform(in_proj, out_proj, self.p.x, self.p.y)
@@ -65,10 +66,13 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
         tif = rio.open(path)
     else:
         tif = path
-    
-    df = df.to_crs(tif.crs)
-    arr = tif.read(list(pl.arange(tif.count) + 1))
-    
+
+    df = df.to_crs(from_epsg(tif.crs.to_epsg()))
+    if tif.count == 1:
+        arr = tif.read()
+    else:
+        arr = tif.read(list(pl.arange(tif.count) + 1))
+
     values = []
     for i, j in zip(*tif.index(df['geometry'].x, df['geometry'].y)):
         values.append(arr[:, i, j])
