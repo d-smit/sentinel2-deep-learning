@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  land_classification:
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - .:/app
+      - ./data:/data
