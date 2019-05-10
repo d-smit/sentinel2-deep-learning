@@ -2,6 +2,7 @@ import pylab as pl
 from pandas import concat
 from scipy import stats
 from geopandas import GeoDataFrame
+from pandas import concat
 from .raster import calc_indices
 
 def remove_outliers(df, bands=['B02', 'B03', 'B04', 'B08'], indices=False):
@@ -30,8 +31,16 @@ def create_raster_df(pred_array, bands=['B02', 'B03', 'B04', 'B08'], indices=Fal
         gdf = calc_indices(gdf)
     return gdf
 
-def create_zero_samples(df, bands=['B02', 'B03', 'B04', 'B08', 'labels']):
+def create_zero_samples(df, bands=['B02', 'B03', 'B04', 'B08', 'labels'], samples=1000):
     label_col = [0]
-    na_df = GeoDataFrame(pl.ones((1000, len(df.columns))) * ([-9999, -9999, -9999, -9999] + label_col), columns = list(df.columns))
+    na_df = GeoDataFrame(pl.ones((samples, len(df.columns))) * ([-9999, -9999, -9999, -9999] + label_col), columns = list(df.columns))
     df = df.append(na_df).astype(pl.int16)
     return df
+
+def balance_samples(df, samples=1000):
+    classes = df['labels'].value_counts().keys()
+    sampled_dfs = []
+    for cl in classes:
+        cls_df = df[df['labels']].sample(samples)
+        sampled_dfs.append(cls_df)
+    return concat(sampled_dfs)

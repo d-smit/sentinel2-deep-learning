@@ -10,7 +10,11 @@ from .preprocessing import create_raster_df, create_zero_samples
 from .raster import calc_indices
 from .io import write_raster
 
-def classify(df, pred_path='data/masked.tif', cv=True, name='mlp', algorithm=MLPClassifier()):    
+def classify(df, 
+             pred_path='data/masked.tif', 
+             cv=True, 
+             name='mlp', 
+             algorithm=MLPClassifier()):    
     assert isinstance(pred_path, str) or isinstance(pred_path, rio.DatasetReader)
     
     if isinstance(pred_path, str):
@@ -26,7 +30,7 @@ def classify(df, pred_path='data/masked.tif', cv=True, name='mlp', algorithm=MLP
     gdf = create_raster_df(data)
     gdf = calc_indices(gdf)
     if cv:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5)
     else:
         X_train, y_train = X, y
     cls = algorithm
@@ -44,6 +48,13 @@ def classify(df, pred_path='data/masked.tif', cv=True, name='mlp', algorithm=MLP
         print(score)
         cm = confusion_matrix(cls_cv, y_test)
         f, ax = pl.subplots(1, figsize = (20, 20))
-        sns.heatmap(ax = ax, data=cm, annot=True, fmt='g', linewidths=0.5, cbar=False)
+        sns.heatmap(ax = ax, 
+                    data=cm, 
+                    annot=True, 
+                    fmt='g', 
+                    linewidths=0.5, 
+                    cbar=False)
+        ax.set_ylabel('Predicted')
+        ax.set_xlabel('True')
         f.savefig('outputs/cv_{}.png'.format(name))
-    return pred, proba, cm
+    return pred, proba, cm, cls

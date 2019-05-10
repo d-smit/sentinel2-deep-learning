@@ -2,7 +2,6 @@ from rasterstats import zonal_stats
 import seaborn as sns
 import pylab as pl
 import geopandas as gpd
-from rasterio.mask import raster_geometry_mask
 
 def aggregate_raster(raster, vector, out_file='grouped.json'):
     
