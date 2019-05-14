@@ -61,6 +61,9 @@ class PointExtractor:
         return transform(in_proj, out_proj, self.p.x, self.p.y)
 
 def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
+    """
+    Sample values in a raster. Only necessary if you use PointExtractor.
+    """
     assert isinstance(path, str) or isinstance(path, rio.DatasetReader)
     if isinstance(path, str):
         tif = rio.open(path)

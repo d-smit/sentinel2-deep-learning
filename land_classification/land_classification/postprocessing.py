@@ -4,7 +4,10 @@ import pylab as pl
 import geopandas as gpd
 
 def aggregate_raster(raster, vector, out_file='grouped.json'):
-    
+    """
+    Aggregates raster pixels to polygons in a shapefile if you have those available. 
+    Useful for post processing.
+    """
     out_file = 'outputs/' + out_file
     if isinstance(raster, str):
         tif = rio.open(raster)

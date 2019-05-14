@@ -1,0 +1,7 @@
+*.tif
+*.csv
+*.SAFE/*
+*.geojson
+*.json
+*.shp
+*.xml
