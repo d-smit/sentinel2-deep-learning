@@ -104,14 +104,14 @@ def mask_raster(shp, merge_path, outpath):
         outpath <- path to where to put the output
     """
     assert isinstance(outpath, str)
-    assert isinstance(mask_path, str) or isinstance(mask_path, rio.DatasetReader)
+    assert isinstance(merge_path, str) or isinstance(merge_path, rio.DatasetReader)
     
     if isinstance(shp, str):
         shp = read_file(shp)
     elif isinstance(shp, GeoDataFrame):
         shp = shp
 
-    if isinstance(mask_path, str):
+    if isinstance(merge_path, str):
         m_src = rio.open(merge_path)
     else:
         m_src = merge_path
@@ -122,6 +122,7 @@ def mask_raster(shp, merge_path, outpath):
                                 crop=True, 
                                 nodata=-9999,
                                 all_touched=True)
+    
     mask_arr[mask_arr == -32768] = -9999
     mask_arr = mask_arr.astype(pl.int16)
     profile = m_src.profile

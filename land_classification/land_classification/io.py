@@ -18,8 +18,7 @@ def write_raster(name, data, profile, nodata=-9999):
         "height": data.shape[1],
         "width": data.shape[2],
         "nodata": nodata,
-        "dtype": data.dtype,
-        "crs": 'EPSG:'
+        "dtype": data.dtype
     })
     
     print("Writing raster {} with {} bands.".format(name, data.shape[0]))

@@ -26,13 +26,14 @@ def classify(df,
         pred_path <- either a dataset or path to multiband raster
         cv <- flag whether or not to run cross validation and produce metrics
         onehot <- whether or not to onehot the targets
-        bands <- a list of bands to use. if it is None, then it chooses all bands, including
-                any indices generated on input.
-        algorithm <- you may specify your choice of algorithm from sklearn, XGBoost, Keras, etc.
-    
-    returns:
+        bands <- a list of bands to use. if it is None, then it chooses all 
+                bands, including any indices generated on input.
+        algorithm <- you may specify your choice of algorithm from sklearn, 
+        XGBoost, Keras, etc.
+                returns:
         pred <- an array with the classification map
-        proba <- probability map from any classification. Will need changing if you want to run regression
+        proba <- probability map from any classification. Will need changing 
+                if you want to run regression
         cm <- the confusion matrix from cross validation
         cls <- the classifier model if you need to review it further
     """
