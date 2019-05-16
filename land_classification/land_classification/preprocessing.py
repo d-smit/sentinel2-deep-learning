@@ -79,5 +79,6 @@ def onehot_targets(df, column='labels'):
     make sure that your input dataframe has a 'labels' column.
     
     """
-    df[df[column].unique()] = get_dummies(df[column])
+    onehot = pd.get_dummies(clean_df[column])
+    df[onehot.columns] = onehot
     return df

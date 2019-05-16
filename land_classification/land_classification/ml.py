@@ -14,7 +14,8 @@ def classify(df,
              pred_path='data/masked.tif', 
              cv=True,
              onehot=True,
-             name='mlp', 
+             name='mlp',
+             labels=None,
              bands=['B02', 'B03', 'B04', 'B08'],
              algorithm=MLPClassifier()):
     """
@@ -43,15 +44,20 @@ def classify(df,
         mask_src = rio.open(pred_path)
     else:
         mask_src = pred_path
+        
     if onehot:
         class_cols = list(df['labels'].unique())
     else:
         class_cols = 'labels'
+        
     if bands is None:
-        X = df.drop(class_cols + ['labels'], axis=1)
+        X = df.drop(class_cols + ['labels'] + [0], axis=1)
+        bands = list(X.columns)
     else:
         X = df[bands]
+    print(bands)
     y = df[class_cols]
+
     
     ## Load and prepare the dataset to predict on
     profile = mask_src.profile
@@ -59,7 +65,7 @@ def classify(df,
     gdf = create_raster_df(data)
     gdf = calc_indices(gdf)
     if cv:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     else:
         X_train, y_train = X, y
         
@@ -67,8 +73,10 @@ def classify(df,
     cls = algorithm
     cls.fit(X_train, y_train)
     out = cls.predict(gdf[bands])
-    pred = pl.argmax(out, axis=1).reshape((1, data.shape[1], data.shape[2])).astype(pl.int16)
-    proba = cls.predict_proba(gdf).max(axis=1).reshape(1, data.shape[1], data.shape[2])
+    if onehot:
+        out = pl.argmax(out, axis=1)
+    pred = out.reshape((1, data.shape[1], data.shape[2])).astype(pl.int16)
+    proba = cls.predict_proba(gdf[bands]).max(axis=1).reshape(1, data.shape[1], data.shape[2])
     
     if not os.path.exists('outputs'):
         os.makedirs('outputs')
@@ -76,7 +84,9 @@ def classify(df,
     write_raster("outputs/lc_10m_{}_pred.tif".format(name), pred, profile, nodata=0)
     write_raster("outputs/lc_10m_{}_proba.tif".format(name), proba, profile)
     
-    if cv:
+    if cv:  
+        if labels is not None:
+            plot_names = [labels[str(label)] for label in pl.array(sorted(y_test.value_counts().keys()))]
         cls_cv = cls.predict(X_test)
         score = cls.score(X_test, y_test)
         print(score)
@@ -90,6 +100,9 @@ def classify(df,
                     cbar=False)
         ax.set_ylabel('Predicted')
         ax.set_xlabel('True')
+        ax.set_title('Confusion matrix for Corine Level-2 Groups')
+        pl.xticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
+        pl.yticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
         f.savefig('outputs/cv_{}.png'.format(name))
     else:
         cv = None

@@ -62,7 +62,7 @@ def copy_projection(
 root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
 
 
-def merge_bands(safe_id, res='10', bands = ['B02', 'B03', 'B04', 'B08']):
+def merge_bands(safe_id, res='10'):
     """
     Combines several single band rasters into a single multiband raster
     args:
@@ -81,7 +81,7 @@ def merge_scene_bands(date, outpath, res=10, bands = ['B02', 'B03', 'B04', 'B08'
     """
     Same as merge_bands() but only in cases where your AOI intersects multiple scenes.
     """
-    scenes = glob(root_path + '/data/archives/*L2A*{}*/**/R{}m/*B*'.format(date), recursive=True)
+    scenes = glob(root_path + '/data/archives/*L2A*{}*/**/R{}m/*B*'.format(date, res), recursive=True)
     scenes.sort()
     toconc = []
     for band in bands:
@@ -93,7 +93,7 @@ def merge_scene_bands(date, outpath, res=10, bands = ['B02', 'B03', 'B04', 'B08'
         merge_arr, merge_trans = merge(tomerge)
         toconc.append(merge_arr)
     merged_stack = pl.vstack(toconc).astype(pl.int16)
-    write_raster(outpath, merged_stack, tif, merge_trans)
+    write_raster(outpath, merged_stack, tif.profile, merge_trans)
 
 def mask_raster(shp, merge_path, outpath):
     """
