@@ -1,2 +1,8 @@
 *.pyc
 */.ipynb_checkpoints
+venv/
+.directory
+.idea/
+misc/
+aoi.geojson
+data/
