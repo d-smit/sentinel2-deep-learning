@@ -28,7 +28,6 @@ def copy_projection(
     elif isinstance(copy_tif, str):
         copy_tif = rio.open(copy_tif)
         dst_crs = copy_tif.crs
-        
 
     with rio.open(src_path) as src:
         assert dst_crs != src.crs

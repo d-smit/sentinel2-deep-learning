@@ -60,10 +60,13 @@ class PointExtractor:
         out_proj = Proj(init='epsg:4326')
         return transform(in_proj, out_proj, self.p.x, self.p.y)
 
-def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
+
+def sample_raster(df, path, bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']):
     """
     Sample values in a raster. Only necessary if you use PointExtractor.
-    """
+    """#
+    print(bands)
+
     assert isinstance(path, str) or isinstance(path, rio.DatasetReader)
     if isinstance(path, str):
         tif = rio.open(path)
@@ -71,6 +74,7 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
         tif = path
 
     df = df.to_crs(from_epsg(tif.crs.to_epsg()))
+
     if tif.count == 1:
         arr = tif.read()
     else:
@@ -79,7 +83,6 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
     values = []
     for i, j in zip(*tif.index(df['geometry'].x, df['geometry'].y)):
         values.append(arr[:, i, j])
-        
     new_df = pd.DataFrame(data=values, columns=bands)
     df[bands] = new_df[bands]
     

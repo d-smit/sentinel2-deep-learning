@@ -10,13 +10,14 @@ from .preprocessing import create_raster_df, create_zero_samples, onehot_targets
 from .raster import calc_indices
 from .io import write_raster
 
+
 def classify(df, 
              pred_path='data/masked.tif', 
              cv=True,
              onehot=True,
              name='mlp',
              labels=None,
-             bands=['B02', 'B03', 'B04', 'B08'],
+             bands=['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08'],
              algorithm=MLPClassifier()):
     """
     Wrapper for data loading, training, prediction, and some cross-validation metrics.
@@ -39,7 +40,7 @@ def classify(df,
         cls <- the classifier model if you need to review it further
     """
     assert isinstance(pred_path, str) or isinstance(pred_path, rio.DatasetReader)
-    
+    #print(bands)
     if isinstance(pred_path, str):
         mask_src = rio.open(pred_path)
     else:
@@ -49,7 +50,7 @@ def classify(df,
         class_cols = list(df['labels'].unique())
     else:
         class_cols = 'labels'
-        
+
     if bands is None:
         X = df.drop(class_cols + ['labels'] + [0], axis=1)
         bands = list(X.columns)
@@ -58,18 +59,18 @@ def classify(df,
     print(bands)
     y = df[class_cols]
 
-    
-    ## Load and prepare the dataset to predict on
+    # Load and prepare the dataset to predict on
     profile = mask_src.profile
     data = mask_src.read(list(pl.arange(mask_src.count) + 1))
+    print(mask_src.count)
     gdf = create_raster_df(data)
     gdf = calc_indices(gdf)
     if cv:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     else:
         X_train, y_train = X, y
-        
-    ## Train and predict. algorithm is fed in as an argument
+
+    # Train and predict. algorithm is fed in as an argument
     cls = algorithm
     cls.fit(X_train, y_train)
     out = cls.predict(gdf[bands])
@@ -92,7 +93,7 @@ def classify(df,
         print(score)
         cm = confusion_matrix(cls_cv, y_test)
         f, ax = pl.subplots(1, figsize = (20, 20))
-        sns.heatmap(ax = ax, 
+        sns.heatmap(ax=ax,
                     data=cm, 
                     annot=True, 
                     fmt='g', 
@@ -103,6 +104,7 @@ def classify(df,
         ax.set_title('Confusion matrix for Corine Level-2 Groups')
         pl.xticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
         pl.yticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
+        f.show()
         f.savefig('outputs/cv_{}.png'.format(name))
     else:
         cv = None
