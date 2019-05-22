@@ -1,0 +1,72 @@
+Week 2 Log
+
+- Created branch on master, deleted cloned repo. Now able to pull and push from branch. 
+- Going through notebook example still and making sense of libraries.
+- Weekly call coming up on Wed: questions? 
+	- Technical stuff 
+	- Make a new plan 
+	
+- Researching raster data format 
+- Getting to grips with Git and the repository 
+- Still working through the example and notebook 
+- Going through each of the library scripts and making sure I understand 
+
+Questions
+
+Give general outline of what is going on up to where ive got, explaining along the way how you stopped to explore the library. 
+
+POINT EXTRACTOR 
+
+- In the example vs notebook, example uses PointExtractor class to deal with issue of conflicting projections - grabs pixels 
+and makes a df of there position and value. So this dataframe would be the same for the same points from images of different 
+projections. It removes any idea of perspective and distortion? 
+
+- Within PE, you also designate the CRS to be the same as that of the AOI 
+
+- Subverts the requirement for having identical projections? 
+
+- Creates df where all values are 0? 
+
+- Is point extractor the way to go, notebook example doesn't use this - is this to just show conflict of projections? 
+
+CREATE SAMPLE RASTER 
+
+- CRS still has to be set as that of the corine file 
+
+- So it's within this function the projections/reference systems are matched and labelling takes place. 
+- Also columns are added to df of extracted points and the corine pixels are read. A value is created based on the location of each extracted point
+and its corresponding corine pixel value. 
+
+- Got error when using 4 bands like in the example: Shape conflict, is this because the mask is made up of the 8-band image, so need to keep it 8?
+
+OUTLIER REMOVAL 
+
+- When I remove outliers, get an error similar to that in the notebook, "A value is trying to be set on a copy of a slice from a dataframe" 
+STILL RUNS, but does this mean the projection is incorrect? Fixed vis use of S2 Proj, just curious as to what is happening here? 
+
+ZERO SAMPLE FUNCTION 
+
+- Zero samples function gives error about operands not being broadcast together, reads shapes (1000, 9) (5,). I didn't use it here but just curious
+as to what is happening?
+
+- Tried with small amount of points, just trying to make sense of evaluation criteria. 
+
+CLASSIFY FUNCTION 
+
+Getting error when creating geodataframe based on the data from the mask - why is this done? 
+- data values are all -9999s
+- Fully get how we are making ghte train test split with the df of Bands, labels and extra indices
+- Just after that, within the ml.py, am confused about this mask_src - why are there no values? 
+- Gives a gdf of all bands with -9999 
+
+The inner working of this function seem to create a list of 1 2 3 4 5 6 7 8 from bands, but then .read() makes an array of 9999s per band? 
+
+- It's this gdf data which seems to be used in Alexey's window resolution example 
+
+
+STARTING TO LOOK AT WINDOW RESOLUTION 
+
+
+
+
+
