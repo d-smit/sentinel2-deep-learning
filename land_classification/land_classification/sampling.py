@@ -60,7 +60,7 @@ class PointExtractor:
         out_proj = Proj(init='epsg:4326')
         return transform(in_proj, out_proj, self.p.x, self.p.y)
 
-def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
+def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
     """
     Sample values in a raster. Only necessary if you use PointExtractor.
     """
@@ -78,9 +78,9 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08']):
 
     values = []
     for i, j in zip(*tif.index(df['geometry'].x, df['geometry'].y)):
-        values.append(arr[:, i, j])
+        values.append(arr[:, i-buffer:(i+1)+buffer, j-buffer:(j+1)+buffer])
         
-    new_df = pd.DataFrame(data=values, columns=bands)
-    df[bands] = new_df[bands]
-    
+    cols = [band + '_' + str(v+1) for band in bands for v in range(values[0].shape[1] * values[0].shape[2])]
+    new_df = pd.DataFrame(data=list(map(lambda x: x.flatten(), values)), columns=cols)
+    df[new_df.columns] = new_df
     return df

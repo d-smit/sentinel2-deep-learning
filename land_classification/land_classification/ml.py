@@ -95,7 +95,8 @@ def classify(df,
         sns.heatmap(ax = ax, 
                     data=cm, 
                     annot=True, 
-                    fmt='g', 
+                    fmt='g',
+                    cmap='pink',
                     linewidths=0.5, 
                     cbar=False)
         ax.set_ylabel('Predicted')
@@ -103,7 +104,7 @@ def classify(df,
         ax.set_title('Confusion matrix for Corine Level-2 Groups')
         pl.xticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
         pl.yticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
-        f.savefig('outputs/cv_{}.png'.format(name))
+        f.savefig('outputs/lc_10m_{}_cv.png'.format(name))
     else:
         cv = None
     return pred, proba, cm, cls
