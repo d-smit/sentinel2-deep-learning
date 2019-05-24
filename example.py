@@ -7,10 +7,15 @@ import json
 
 import land_classification as lc
 
-aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
-aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
-aoi.crs = from_epsg(4326)
-aoi.to_file('./data/aoi.geojson', driver='GeoJSON')
+aoi = False
+
+if not aoi:
+    aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
+    aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
+    aoi.crs = from_epsg(4326)
+    aoi.to_file('./data/aoi.geojson', driver='GeoJSON')
+else:
+    aoi = gpd.read_file('/data/aoi.geojson')
 
 with open('./data/labels.json') as jf:
     names = json.load(jf)
