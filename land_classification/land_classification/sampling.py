@@ -61,10 +61,10 @@ class PointExtractor:
         return transform(in_proj, out_proj, self.p.x, self.p.y)
 
 
-def sample_raster(df, path, bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']):
+def sample_raster(df, path, bands=['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']):
     """
     Sample values in a raster. Only necessary if you use PointExtractor.
-    """#
+    """
     print(bands)
 
     assert isinstance(path, str) or isinstance(path, rio.DatasetReader)

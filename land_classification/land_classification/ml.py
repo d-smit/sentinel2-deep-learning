@@ -56,21 +56,23 @@ def classify(df,
         bands = list(X.columns)
     else:
         X = df[bands]
-    print(bands)
+
     y = df[class_cols]
 
     # Load and prepare the dataset to predict on
+
     profile = mask_src.profile
     data = mask_src.read(list(pl.arange(mask_src.count) + 1))
-    print(mask_src.count)
     gdf = create_raster_df(data)
     gdf = calc_indices(gdf)
+
     if cv:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     else:
         X_train, y_train = X, y
 
     # Train and predict. algorithm is fed in as an argument
+
     cls = algorithm
     cls.fit(X_train, y_train)
     out = cls.predict(gdf[bands])
@@ -106,6 +108,8 @@ def classify(df,
         pl.yticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
         f.show()
         f.savefig('outputs/cv_{}.png'.format(name))
+
     else:
         cv = None
     return pred, proba, cm, cls
+
