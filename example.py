@@ -7,12 +7,26 @@ import json
 
 import land_classification.land_classification as lc
 
+<<<<<<< HEAD
 aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
 aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
 aoi.crs = from_epsg(4326)
 aoi.to_file('/home/david/Uni/Thesis/lc_gsi/data/aoi.geojson', driver='GeoJSON')
 #
 with open('/home/david/Uni/Thesis/lc_gsi/data/labels.json') as jf:
+=======
+aoi = False
+
+if not aoi:
+    aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
+    aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
+    aoi.crs = from_epsg(4326)
+    aoi.to_file('./data/aoi.geojson', driver='GeoJSON')
+else:
+    aoi = gpd.read_file('/data/aoi.geojson')
+
+with open('./data/labels.json') as jf:
+>>>>>>> 56b27e3522e7cb8f429974aa3fd4afd0f2628ee1
     names = json.load(jf)
 
 s2_band = 'S2A.SAFE'

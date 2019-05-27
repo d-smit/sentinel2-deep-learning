@@ -98,7 +98,8 @@ def classify(df,
         sns.heatmap(ax=ax,
                     data=cm, 
                     annot=True, 
-                    fmt='g', 
+                    fmt='g',
+                    cmap='pink',
                     linewidths=0.5, 
                     cbar=False)
         ax.set_ylabel('Predicted')

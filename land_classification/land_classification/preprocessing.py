@@ -5,9 +5,11 @@ Dataframe operations on the dataset after extracting values from rasters.
 import pylab as pl
 from pandas import concat
 from scipy import stats
+from sklearn.decomposition import PCA
 from geopandas import GeoDataFrame
 from pandas import concat, get_dummies
 from .raster import calc_indices
+
 
 
 def remove_outliers(df, bands=['B02', 'B03', 'B04', 'B08'], indices=False):
@@ -82,6 +84,21 @@ def onehot_targets(df, column='labels'):
     make sure that your input dataframe has a 'labels' column.
     
     """
-    onehot = pd.get_dummies(clean_df[column])
+    onehot = get_dummies(clean_df[column])
     df[onehot.columns] = onehot
     return df
+
+def df_pca(df):
+    """
+    Clean imagery based on Principal Components Analysis.
+    """
+    grp = df.groupby('labels')
+    pca = PCA(n_components=2)
+    cleaned_list = []
+    for ix, gp in grp:
+        if ix == 0:
+            cleaned_list.append(gp)
+        clean_gp = gp[~pl.any((abs(pca.fit_transform(gp)) < 250) == False, axis=1)]
+        cleaned_list.append(clean_gp)
+    samp_df = pd.concat(cleaned_list)
+    return samp_df
