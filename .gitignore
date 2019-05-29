@@ -6,3 +6,4 @@ venv/
 misc/
 aoi.geojson
 data/
+outputs/
