@@ -1,0 +1,25 @@
+**** Call 2 ****
+
+- Getting key error in indices function, put in temp_bands to change gdf columns 
+
+Variable Patch Idea
+
+- Have a variable patch size based on average pixel value in patch... If lot of information
+in buffer then patch will be smaller... vice versa for low info area. 
+
+- Would need to know information of pixels within patch
+
+- Would all patches have to be rectangles? Could get complicated having irregular sizes. 
+
+- Min/max values dictate size? Outliers removed though 
+
+- Lots of patches in cities.. good or bad? 
+
+- Overlap of patches? 
+
+- Texture analysis - textures will range from regular, irregular to stochastic 
+
+Set Patch Size 
+
+- Experiment with different, consistently sized buffers 
+

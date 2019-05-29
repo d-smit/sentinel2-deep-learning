@@ -78,6 +78,19 @@ Data on GitLab?
 - Tell alexey cant download teams on linux, no screen share
 - Tidying script 
 - Looking at classify function further to work out performance metrics 
+- Working out remove outliers function 
+
+
+***** Next week
+
+- Getting key error in indices function, put in temp_bands to change gdf columns 
+
+- Have a variable patch size based on average pixel value in patch... If lot of information
+in buffer then patch will be smaller... vice versa for low info area. 
+
+- Lots of patches in cities.. good or bad? 
+
+- Texture analysis - textures will range from regular, irregular to stochastic 
 
 
 
