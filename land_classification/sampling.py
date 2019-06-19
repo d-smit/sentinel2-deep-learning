@@ -63,7 +63,7 @@ class PointExtractor:
 # points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
 
 
-def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=2):
+def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
     """
     Sample values in a raster. Only necessary if you use PointExtractor.
     """

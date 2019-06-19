@@ -69,6 +69,7 @@ def merge_bands(safe_id, res='10'):
         res <- resolution to use. We have 10, 20, and 60.
         bands <- the bands to use.
     """
+    
     files = glob(root_path + '/data/{}/**/R{}m/*_B*'.format(safe_id, res), recursive=True)
     files.sort()
     tifs = list(map(rio.open, files))
