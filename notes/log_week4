@@ -1,0 +1,93 @@
+Week beginning June 3rd
+
+Week plan: revise project schedule to account for more focussed lit review 
+		   step away from lc package to carry out lit review
+		   continue reading on raster data
+
+Lit Review:
+
+Good overview https://www.geospatialworld.net/article/land-cover-classification-from-remote-sensing-data/
+
+DL Paper with MLP + RF vs CNN: https://ieeexplore.ieee.org/abstract/document/7891032
+
+Meta-analysis of RS research spec. pixel-based land-classification:
+
+https://www.researchgate.net/publication/295542863_A_meta-analysis_of_remote_sensing_research
+
+Two main factors: algorithm used and input data manipulation 
+
+Data manipulation: feature aggregation e.g. inclusion of texture (window of pixels) biggest, then ancillary data (elevation), multi-angle and time images.
+				   use of index creation (ndvi) and feature extraction (PCA) smaller improvements 
+
+Algorithm used: SVM best, then NNs. RF>DT. Maximum Likelihood classifiers worst (benchmark though)
+
+^Up to 2016. Past few years:
+
+Ensemble and DL have outperformed SVM. 
+
+Potential for future work/if have time: time series data for scene by using multiple images of orig scene. 
+
+Outline of 1st paper (above): preproc, class, postproc, geo analysis. 
+Preproc already done. 
+2D CNN highest performing - 94%, 12hr training time
+
+
+DCNN with Transfer Learning: https://ieeexplore.ieee.org/abstract/document/7858676 (good)
+
+mentions: feature extraction methods: scale invariant feature transform [1],
+										histograms of oriented gradients [2], 
+										and bag of visual words (BoVW)
+										
+uses: Caffe, GoogLeNet, ResNet
+
+highlights: massive labelled image training data sets are hard to come by, uses transfer learning and
+expands training data set through augmentation strategies. 
+
+FE layer chunk made up of convolution, normalization, activation and max pooling layers (future visualisation purposes) 
+
+Image transposition - allows network to learn feature classification without regard to feature orientation 
+
+Important for small RS datasets which may have feature orientation biases
+
+Keep in mind multi-label vs multi-class, a lot of papers reviewed considering multiple scenes where
+each scene has one classification (multi-class), whereas we are concerned with one scene which 
+contains multiple labels (multi-label).
+
+Interesting segmentation overview: http://www.robots.ox.ac.uk/~jmb/lectures/InformaticsLecture5.pdf
+
+varying pixel window (polygon/segment) sizes in single scene complex (alexey)
+
+Markov random field (mrf) model for forming pixels into segments. (OBIA?)
+
+https://clarklabs.org/segmentation-and-segment-based-classification/
+
+Pixel based vs segment based 
+
+Image segmentation with DL: https://medium.com/nanonets/how-to-do-image-segmentation-using-deep-learning-c673cc5862ef interesting
+
+R-CNNs, Fully convolutional networks 
+
+Semantic segmentation vs instance segmentation 
+
+Facebook Mask R-CNN - state-of-art segmentation 
+
+MRFs https://inf.u-szeged.hu/~ssip/2008/presentations2/Kato_ssip2008.pdf
+
+Conditional random fields used for multi-class classification: https://pdfs.semanticscholar.org/64c8/eb597116a9cb43c7482cfb61bb2fa8f2a15b.pdf
+
+CRF vs MRF: https://pdfs.semanticscholar.org/64c8/eb597116a9cb43c7482cfb61bb2fa8f2a15b.pdf
+
+CRFs consider the correlation of an observation at a particular site with observations at surrounding sites, whereas
+MRFs do not consider nearby, they will consider all possible classes
+(will have even spread of class probability dist. for surrounding areas, whereas CRFs will favour
+classes that are observed in current area) (shaky) 
+
+
+
+
+
+
+
+
+
+

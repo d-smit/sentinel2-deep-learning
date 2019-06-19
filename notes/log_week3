@@ -1,5 +1,6 @@
 **** Call 2 ****
 
+- Put better variable in remove_outliers func to access only df bands 
 - Getting key error in indices function, put in temp_bands to change gdf columns 
 
 Variable Patch Idea
@@ -23,3 +24,80 @@ Set Patch Size
 
 - Experiment with different, consistently sized buffers 
 
+- Need to put in filter in indice calculations for when we introduce patches 
+
+- Fit distribution to patch based on std of mean 
+
+- x - mean /std  
+
+- Test dataset need to have same patches 
+
+- Arbritrary window sizes 
+
+- Try range of buffer sizes. 
+
+- Corine pixel size varying - pick dominant label. 
+
+- Validation set made up of QGIS - Corine unreliable. 
+
+
+Meeting with Marc, literature review. 
+
+- GlobCover Land Maps 
+- Wavelength selection, as mentioned:
+
+https://www.geospatialworld.net/article/land-cover-classification-from-remote-sensing-data/
+
+AVIRIS has 224 wavelengths, for example: 
+
+https://www.researchgate.net/publication/5567331_Lossless_compression_of_AVIRIS_images
+
+Need to consider which S2 to use/add to
+
+h20 package https://h2o-release.s3.amazonaws.com/h2o/master/3190/docs-website/h2o-docs/booklets/DeepLearning_Vignette.pdf
+
+Training data size vs number of wavelengths: https://www.researchgate.net/publication/260549686_Remote_sensing_The_quantitative_approach
+
+Evidential reasoning for land classification: https://nature.berkeley.edu/~penggong/PDFpapers/GongPERS96geo.pdf
+
+SVM in OBIA: https://www.researchgate.net/publication/235964591_A_SUPPORT_VECTOR_MACHINE_APPROACH_FOR_OBJECT_BASED_IMAGE_ANALYSIS
+
+and https://www.researchgate.net/publication/274256062_The_potential_of_support_vector_machine_classification_of_land_use_and_land_cover_using_seasonality_from_MODIS_satellite_data
+
+and with GlobCover use: Exploiting the Classification Performance of Support Vector
+						Machines with Multi-Temporal Moderate-Resolution Imaging
+						Spectroradiometer (MODIS) Data in Areas of Agreement and
+						Disagreement of Existing Land Cover Products  
+						
+** Revised project plan **
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

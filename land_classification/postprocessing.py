@@ -1,4 +1,5 @@
-from rasterstats import zonal_stats
+import rasterio as rio
+#from rasterstats import zonal_stats
 import seaborn as sns
 import pylab as pl
 import geopandas as gpd

@@ -24,8 +24,10 @@ def write_raster(name, data, profile, nodata=-9999):
     print("Writing raster {} with {} bands.".format(name, data.shape[0]))
     
     with rio.open(name, "w", **profile) as dst:
-        for i in range(len(data)):
-            print("Writing band {} of {}".format(i+1, data.shape[0]))
-            dst.write(data[i], i+1)
-            
-    print("File {} written.".format(name))
+         for i in range(len(data)):
+             print("Writing band {} of {}".format(i+1, data.shape[0]))
+             dst.write(data[i], i+1)
+#    
+#    with rio.open(name, "w", **profile) as dst:
+#            dst.write(data, 1)        
+#    print("File {} written.".format(name))

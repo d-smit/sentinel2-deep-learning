@@ -83,7 +83,8 @@ def classify(df,
         out = pl.argmax(out, axis=1)
     pred = out.reshape((1, data.shape[1], data.shape[2])).astype(pl.int16)
     proba = cls.predict_proba(gdf[temp_bands]).max(axis=1).reshape(1, data.shape[1], data.shape[2])
-    
+    print(pred)
+    print(proba)
     if not os.path.exists('outputs'):
         os.makedirs('outputs')
         
@@ -91,8 +92,8 @@ def classify(df,
     write_raster("outputs/lc_10m_{}_proba.tif".format(name), proba, profile)
     
     if cv:  
-        if labels is not None:
-            plot_names = [labels[str(label)] for label in pl.array(sorted(y_test.value_counts().keys()))]
+        # if labels is not None:
+        #     plot_names = [labels[str(label)] for label in pl.array(sorted(y_test.value_counts().keys()))]
         cls_cv = cls.predict(X_test)
         score = cls.score(X_test, y_test)
         print(score)
@@ -108,8 +109,8 @@ def classify(df,
         ax.set_ylabel('Predicted')
         ax.set_xlabel('True')
         ax.set_title('Confusion matrix for Corine Level-2 Groups')
-        pl.xticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
-        pl.yticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
+        # pl.xticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
+        # pl.yticks(pl.arange(len(y_test.unique()))+0.5, plot_names, rotation=45)
         f.show()
         f.savefig('outputs/cv_{}.png'.format(name))
 

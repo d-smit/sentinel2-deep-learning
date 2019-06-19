@@ -63,7 +63,7 @@ class PointExtractor:
 # points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
 
 
-def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
+def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=2):
     """
     Sample values in a raster. Only necessary if you use PointExtractor.
     """
@@ -74,6 +74,11 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
     else:
         tif = path
 
+    '''
+    Tif represents the ground truth data, from which the pixel values are read
+    into an array. From this array we extract a selection of points.
+    '''
+
     df = df.to_crs(from_epsg(tif.crs.to_epsg()))
 
     if tif.count == 1:
@@ -82,6 +87,7 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
         arr = tif.read(list(pl.arange(tif.count) + 1))
 
     values = []
+
     for i, j in zip(*tif.index(df['geometry'].x, df['geometry'].y)):
         values.append(arr[:, i-buffer:(i+1)+buffer, j-buffer:(j+1)+buffer])
         

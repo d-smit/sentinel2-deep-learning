@@ -1,0 +1,17 @@
+18/06
+
+- fully set on FCN and a combination of segmentation/atrous convolution/upsampling/CRFs
+- attempting graph based segmentation
+- attempting DeepLab implementation with rastervision
+
+Need to figure out training set before getting implementation going
+
+	-> trying to figure out training data issue: sampling vs tiling
+	-> emailed paper (remote sensing lidar seg)
+
+Buffer of 2 means 5x5 patch. Means 25*8 pixel values per entry, plus 25 labels and 4 indices (savi,  ndwi,  evi, ndvi)
+-> 229 columns for a 5x5 patch. 
+-> Common solution is to make whole patch label that of central pixel, however does this not make patch creation
+redundant, as could just take the label of the extracted pixel. 
+-> Leaning more to training on whole tile. Same issue though -> if a tile is an input, what is its label. 
+

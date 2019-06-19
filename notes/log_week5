@@ -1,0 +1,297 @@
+Week beginning June 10th
+
+Week plan: consolidate input data manipulation methods to experiment with
+		   select baseline model
+		   back to lc package
+		   begin experimenting with tensorflow (+Keras)
+
+Planned approaches
+
+Main two factors to consider 1) Algorithm choice 2) Input data manipulation
+
+1) Algorithms
+
+- CNNs (Ensemble, 1-D and 2-D, Region-based (R-CNN), Mask R-CNN)
+- MLPs 
+- Support Vector Machines 
+
+Currently looking like main method will be some form of CNN with segmentation and using tensorflow
+
+SVM fairly common also however
+
+Baseline measure to compare data manipulation methods over: MLP or Maximum Likelihood Classifier
+
+Pair-wise comparison of acc of diff algos (meta-analysis data from lit review):
+
+Avg p value for SVM vs other: (0.04+0.04+0.01+0.06+0.03+0.01)/6 = 0.03
+Avg p value for NN vs other: (0.01+0.58+0.01+0.01+0.41)/5 = 0.20
+
+if p value large, we accept null hypothesis (results are due to chance) 
+
+the smaller the p value, the less likely that the result achieved was due to chance.
+
+decision p value ~0.05: in stats, convention to reach 95% confidence before we can reject chance factor. 
+
+p is low, null must go. 
+
+>> SVMs maybe trump NN but not CNN? No mention of CNNs in meta-analysis data (taken up to 2016). Definitely lot of scope for CNNs
+potential over last few years.
+
+2) Data Manipulation 
+
+Primary ideas: 
+
+- Feature aggregation:
+	- Image transformations: segmentation, use transpose of rasters, twist, orientation of features (orientation bias issue?) 
+		- Segmentation (clustering, edge detection, region based), basically OBIA where pixels lumped together based on class
+		- Split image into chunks? 
+	- Textural inclusions: fixed pixel window sizes, sliding window. 
+- Ancillary data: elevation available for aoi (check) (lots of topography info online) 
+
+Secondary:
+
+- Index creation (ndvi)
+- Feature extraction: Principal Component Analysis
+
+Feature extraction (extracting features at each pixel in the image)
+vs
+Feature aggregation (combining features within a block to produce once feature vector that represents the entire block)
+
+Meta-analysis of literature: primary ideas have most affect on accuracy, secondary ideas less. Order subject to change. 
+
+Keep in mind multi-label vs multi-class, a lot of papers reviewed considering multiple scenes where
+each scene has one classification (multi-class), whereas we are concerned with one scene which 
+contains multiple labels.
+
+Good example on tensorflow with image class (pretrained model):
+
+https://medium.com/nanonets/how-to-do-image-segmentation-using-deep-learning-c673cc5862ef
+
+General segmentation stuff: 
+
+	https://www.analyticsvidhya.com/blog/2019/04/introduction-image-segmentation-techniques-python/
+
+MRF model
+
+11/06
+
+- Code is messy 
+- Implement fixed buffer size and compare accuracies 
+- Python segmentation example in above links 
+- More reading to do on segmentation and MRF/CRFs
+
+
+Semantic segmen. with FCN: https://ieeexplore.ieee.org/document/8127319
+
+Segmentation theory: 
+
+	- Traditionally, three main techniques 
+	- 1) Edge-based
+	- 2) Region-based
+	- 3) Hybrid
+	
+Recent development for CNN-based semantic segmentation. Involves converting CNN to FCN 
+Issues with fixed receptive field, single layer cons can only solve single scale objects (?)
+and results are too coarse with a simple deconvolution (?). They proposed multi-layer
+deconvolution network, involving deconvolutional layers and unpooling. 
+
+Complex to get instance-wise segmentations. CRF and MRFs help.
+
+Lot of papers using pretrained VGG-16 CNN model. 16 layer deep model trained on >1mill images:
+K. Simonyan, A. Zisserman, Very deep convolutional networks for large-scale image recognition, 2014.
+
+2 above paper uses encoder-decode symmetric model involving conv+pool then deconv+unpool with 
+a "fully-connected pairwise CRF" at the end to improve on the output, which is a coarse pixel-wise
+image labelling where many pixels are misclassified especially around boundary. 
+
+- RNN structure used to implement CRF
+
+Faster Region-based CNNs (FRCN) 
+
+- Quick test with points and buffer:
+
+No buffer, 10000 points, score: 0.59
+No buffer, 30000 points, score: 0.52 
+No buffer, 50000 points, score: 0.58
+
+To do:
+
+- want to try out pixel manipulation stuff 
+- fixed window method not working
+- lots of segmentation ideas 
+- get fixed window working, then do segmentation tutorials? 
+
+Lots of stuff with CRF and CNNs, as well as many projects using model pretrained on ImageNet (transfer learning)
+Point of capture normally nadir 
+
+Predict on patches, get fixed window working for uniform size, then run NN where test set is made up of df where
+each row is one patch. 
+
+For image classification, in general, two important assumptions are made 
+with regard to spatial smoothness and contextual coherence: 
+	(1) neighboring pixels tend to belong to the same class except on the object boundaries. 
+	(2) adjacent pixels/objects from natural images must follow a certain practical meaning, 
+	e.g., the car is more likely found on the ground than on a tree. 
+
+CRFs can be used to model these dependencies at a local and global scale
+
+Unary + Pair-wise + Higher-order potentials:
+
+https://www.spiedigitallibrary.org/journals/journal-of-applied-remote-sensing/volume-13/issue-1/016501/Semantic-segmentation-of-multisensor-remote-sensing-imagery-with-deep-ConvNets
+
+Pixel manip ideas: Randomly select nonoverlapping image patches of size X * X, for each class
+				   Randomly select 1000 pixels and obtain a patch per pixel using selected pixel as starting point, for each class
+
+12/06
+
+- Fixed pixel window size working if don't plot - with plotting (end of ml function) get key error 2.0 (when buffer=2)
+
+- For segmenting based on pixel values, need to define an object contrasted by its background
+- Need a threshold value - defined globally if just classifying one object with its background
+						 - locally if multiple objects against a background 
+
+
+CRFs used when labels for different inputs are not independent: when there is a high degree of correlation between the input data points and the labels
+Features very correlated with each other 
+https://medium.com/razorthink-ai/how-are-conditional-random-fields-applied-to-image-segmentation-ef511bf34a3f
+
+Good lit review of segmentation with DL: https://www.jvejournals.com/article/19840
+- Segmenting is an unsupervised task 
+
+POST CALL
+
+- Segmenting OK
+- K-means expensive and postprocessing still required, generally lot of human intervention required
+- Still do fixed window stuff 
+
+Edge segment - sobel operators (horizontal, vertical)
+
+mask r-cnn instance segmentation (as opposed to semantic)
+
+Received elevation from Alexey. Need e020n40 tile. Loading issues
+
+
+13/06
+
+more reading on segmenting and crfs needed
+
+RS image processing stuff: https://ieeexplore.ieee.org/abstract/document/6265363
+
+more CNN with CRF: https://ieeexplore.ieee.org/document/7301381 reassuring
+
+http://yann.lecun.com/exdb/publis/pdf/farabet-pami-13.pdf
+
+cnn structuring:https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
+
+graph-based segmentation http://people.cs.uchicago.edu/~pff/papers/seg-ijcv.pdf
+
+orthophotos - images adjusted for topographic relief, lens distortion and camera tilt 
+
+fourier/laplacian transforms https://homepages.inf.ed.ac.uk/rbf/HIPR2/fourier.htm
+
+idea- combine segmentation with current method: form image into segments, classify image densely, aggregate pixel classifications per
+image segment. 
+
+dataset bias http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.208.2314&rep=rep1&type=pdf
+
+S2 tut https://www.hatarilabs.com/ih-en/sentinel2-images-explotarion-and-processing-with-python-and-rasterio
+
+rastervision looks promising, requires docker 
+
+spacenet corpus, labelmaker with tippecanoe (constructs vector tilesets from geojsons)
+
+conv net required to segment? tensorflow deeplab looks good 
+
+SegNet: good vis https://arxiv.org/pdf/1511.00561.pdf
+
+CRFs to refine segmentation result from net
+
+2 main groups of projects using DCNN for segmentation task:
+
+	- Bottom-up image segmentation, followed by DCNN-based region classification. I.e. Segment then classify with CNN
+	
+	- Compute features with CNN for dense labelling, then combine with segmentation done separately. e.g. paper who do CNN at multiple res then employ seg tree
+	
+	- Disregard segmentation, use CNN on whole image and transform last FCL to conv. Deal with spatial localization issues by upsampling and concatenating over feature maps
+	
+Dense CRF (deeplab paper)
+
+Self Organizing Map (SOMs) type of ANN trained unsupervised to produce discretized representation of input space (map), dimensionality reduction method. Similar to autoencoders
+-Only for preprocessing - disregard
+https://openreview.net/forum?id=HyG76D1wf
+
+>> Transforming fully connected layers into convolution
+layers enables a classification net to output a heatmap 
+	- maintaining spatial representation maintained throughout net
+	- 1x1 convolutions
+	- alternative to patches, resampling..
+
+
+When these receptive fields overlap significantly, both
+feedforward computation and backpropagation are much
+more efficient when computed layer-by-layer over an entire
+image instead of independently patch-by-patch
+
+Typical recognition nets, including LeNet [23], AlexNet
+[22], and its deeper successors [34, 35], ostensibly take
+fixed-sized inputs and produce non-spatial outputs.
+
+DeepLab addition - replace fully connected CRF with domain transform (DT), an edge-preserving filtering method 
+				 - Similar to mentioned previously about changing resolution - they feed images of different scales into a CNN then merging results 
+				 
+				 
+All these examples use datasets of 100s of images.. just have one. Need to break up entire tif into tiles and get corine for all? 
+Also many have clear background, for s2 scene: discontinous rural is background?
+
+SqueezeSeg, another encoder-decoder:
+https://www.spiedigitallibrary.org/conference-proceedings-of-spie/10696/106962O/Squeeze-SegNe
+
+In stochastic optimization, gradient computation is
+driven by the training distribution.
+
+Skip layer connections - interpolation and sum, skip the fuse
+
+More and more better 
+
+MiUi metric?
+
+models and archs considered a state-of-art so taking while understanding
+
+main features of pixel-wise classification networks: fully convolutional layer instead of fcl
+													 deconvolutional/upsampling layer to create output same size as in
+													 skip layers linking each downsampling stage to stage of upsampling at end
+													 	- combine dense predictions at shallow layers to coarse predictions at deep layers
+
+excessive pooling and striding reduces spatial resolution of feature maps -> atrous convolution (dilated)
+	- insert a zero-value hole in between pixels in convolutional kernels to increase image resolution 
+
+patch use of different size - selective search, random flips and mirroring. file:///home/david/Downloads/ijgi-07-00110.pdf
+
+^also another that uses graph segmentation instead of cnn
+
+- training set augmentation to increase size 10x fold 
+
+
+Still figuring out sampling issue vs training image set. 
+
+Break image into tiles and sample each, removing biased patches?
+
+Segmentation always hierarchical 
+
+Segmentation for roads 
+
+hyperparameter selection file:///home/david/Downloads/107890D.pdf
+
+three main methods 
+
+ 1) Segment an image and use as input to DCNN 
+ 
+ 2) Dense labelling with DCNN and coupled with results 
+    of segmentation done seperately 
+ 
+ 3) DCNNs to provide pixel-wise classiication with no
+ 	segmentation
+
+
+
+
