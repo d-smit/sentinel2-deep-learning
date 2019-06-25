@@ -127,7 +127,8 @@ def mask_raster(shp, merge_path, outpath):
     mask_arr = mask_arr.astype(pl.int16)
     profile = m_src.profile
     profile['transform'] = mask_trans
-
+    print(mask_arr)
+    print(len(mask_arr))
     write_raster(outpath, mask_arr, profile)
     
 def clean_index(index):

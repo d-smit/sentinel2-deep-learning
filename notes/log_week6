@@ -1,4 +1,4 @@
-18/06
+Week beginning 18/06
 
 - fully set on FCN and a combination of segmentation/atrous convolution/upsampling/CRFs
 - attempting graph based segmentation
@@ -27,4 +27,9 @@ Good Keras Sentinel-2 tutorial, however data is 10,000 images with one class per
 Got barebones Keras NN working ~65% accuracy for 100k points. Run time improved when dissecting classify function.
 
 Trying to integrate DEM data - getting memory error when merging rasters
+
+Seems to be lack of available datasets suitable to train for semantic segmentation.
+- Gdal rasterize 
+- Transfer learning
+
 
