@@ -12,6 +12,7 @@ from rasterio.merge import merge
 from rasterio.plot import show
 import pylab as pl
 import json
+import pandas as pd
 import os
 from glob import glob
 from subprocess import check_output
@@ -83,16 +84,47 @@ lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
 #    
 #mosaic, out_trans = merge(band_ancillary_mosaic, indexes=range(12))
 
-
-
-
-
-
 pe = lc.PointExtractor(aoi)
  
-points_df = pe.get_n(200000)
+points_df = pe.get_n(200)
+
 bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']
  
+def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=5):
+
+    assert isinstance(path, str) or isinstance(path, rio.DatasetReader)
+    if isinstance(path, str):
+        tif = rio.open(path)
+    else:
+        tif = path
+
+    df = df.to_crs(from_epsg(tif.crs.to_epsg()))
+
+    if tif.count == 1:
+        arr = tif.read()
+    else:
+        arr = tif.read(list(pl.arange(tif.count) + 1))
+    print(arr)
+    values = []
+    for i, j in zip(*tif.index(df['geometry'].x, df['geometry'].y)):
+        values.append(arr[:, i-buffer:(i+1)+buffer, j-buffer:(j+1)+buffer])
+       
+    cols = [band + '_' + str(v+1) for band in bands for v in range(values[0].shape[1] * values[0].shape[2])]
+    new_df = pd.DataFrame(data=list(map(lambda x: x.flatten(), values)), columns=cols)
+    df[new_df.columns] = new_df
+    return df
+
+points_df = sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
+points_df.iloc[1,:]
+
+points_df = sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
+points_df.iloc[1,:]
+
+
+
+
+
+
 points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
 points_df = lc.sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
  
@@ -192,7 +224,6 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.show()
-
 
 # Model evaluation with test data set 
 # Prediction at test data set

@@ -67,18 +67,15 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
     """
     Sample values in a raster. Only necessary if you use PointExtractor.
     """
-
     assert isinstance(path, str) or isinstance(path, rio.DatasetReader)
     if isinstance(path, str):
         tif = rio.open(path)
     else:
         tif = path
-
     '''
     Tif represents the ground truth data, from which the pixel values are read
     into an array. From this array we extract a selection of points.
     '''
-
     df = df.to_crs(from_epsg(tif.crs.to_epsg()))
 
     if tif.count == 1:
