@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jun 12 16:45:24 2019
-
-@author: david
-"""
-
 import geopandas as gpd
 import rasterio as rio
 from rasterio.merge import merge
