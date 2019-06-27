@@ -9,17 +9,17 @@ from skimage.segmentation import mark_boundaries
 from skimage.util import img_as_float
 import land_classification as lc
 
-tif = rio.open('data/swindon/masked.tif')
-
-data = pl.stack(list((lambda x: x.read(1).astype(pl.int16), tif)))
-
-s2_band = 'S2A.SAFE'
-
-data, profile = lc.merge_bands(s2_band, res='10')
-
-tif = data[0:3]
-
-tif = tif.reshape(tif.shape[1], tif.shape[2], tif.shape[0])
+#tif = rio.open('data/swindon/masked.tif')
+#
+#data = pl.stack(list((lambda x: x.read(1).astype(pl.int16), tif)))
+#
+#s2_band = 'S2A.SAFE'
+#
+#data, profile = lc.merge_bands(s2_band, res='10')
+#
+#tif = data[0:3]
+#
+#tif = tif.reshape(tif.shape[1], tif.shape[2], tif.shape[0])
 
 img = img_as_float(astronaut()[::2, ::2])
 

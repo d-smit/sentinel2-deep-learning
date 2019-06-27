@@ -32,7 +32,11 @@ Seems to be lack of available datasets suitable to train for semantic segmentati
 - Gdal rasterize 
 - Transfer learning
 
-starting segment and trying to figure out patch labelling 
+Having CRS issues between s2 and ancillary data
+
+Going to segment and use segment ID 
+
+
 
 
 

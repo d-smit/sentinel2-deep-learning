@@ -78,7 +78,7 @@ lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
 
 pe = lc.PointExtractor(aoi)
  
-points_df = pe.get_n(200)
+points_df = pe.get_n(3000)
 
 bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']
  
@@ -111,10 +111,6 @@ points_df.iloc[1,:]
 
 points_df = sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
 points_df.iloc[1,:]
-
-
-
-
 
 
 points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
