@@ -14,16 +14,16 @@ Buffer of 2 means 5x5 patch. Means 25*8 pixel values per entry, plus 25 labels a
 -> 229 columns for a 5x5 patch. 
 -> Common solution is to make whole patch label that of central pixel, however does this not make patch creation
 redundant, as could just take the label of the extracted pixel. 
--> Leaning more to training on whole tile. Same issue though -> if a tile is an input, what is its label. 
 
-Post call
+-> Use most common pixel for labelling of patch.
 
-- Use most common pixel for labelling of patch.
 - Beware object detection context, not relevant.
 
 Good Keras Sentinel-2 tutorial, however data is 10,000 images with one class per image
  - 10,000 patches with most common label assigned for each. 
- 
+
+- Too much time on figuring out innerworkings of state-of-art models, setting up primitive Keras
+
 Got barebones Keras NN working ~65% accuracy for 100k points. Run time improved when dissecting classify function.
 
 Trying to integrate DEM data - getting memory error when merging rasters
@@ -32,11 +32,18 @@ Seems to be lack of available datasets suitable to train for semantic segmentati
 - Gdal rasterize 
 - Transfer learning
 
-Having CRS issues between s2 and ancillary data
+Having CRS issues between s2 and ancillary data - Solved
 
-Going to segment and use segment ID 
+- Resolution difference issue between s2 and DEM 
 
+- Patch-wise classification seems more erroneous due to inevitable sacrifice of patch diversity 
+- Pixel-wise classification with additional DEM and segment info seems doable 
+- However no spatial context means not fully exploiting CNN potential 
 
+Look into transfer learning, lot of stuff online, many pre-trained models 
 
+- CRF post-processing still
+
+- CRF background/pytut: https://towardsdatascience.com/conditional-random-field-tutorial-in-pytorch-ca0d04499463
 
 

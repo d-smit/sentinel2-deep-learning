@@ -1,0 +1,4 @@
+QGIS issues v frustrating 
+
+- Sorted out DEM crs 
+- Need to think about resolution difference: 1 pixel of DEM ~ 2x3 s2
