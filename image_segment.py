@@ -4,6 +4,7 @@ import glob
 import os
 import numpy as np
 import pylab as pl
+import rasterstats
 import matplotlib.pyplot as plt
 from fiona.crs import from_epsg
 from shapely.geometry import box as geobox
@@ -23,18 +24,18 @@ img = tiff.imread('data/segment/TCI_clipped.tif')
 gradient = sobel(rgb2gray(img))
 
 segments_quick = quickshift(img, kernel_size=3, max_dist=400, ratio=0.5)
-#segments_fz = felzenszwalb(img, scale=100, sigma=0.5, min_size=50)
+segments_fz = felzenszwalb(img, scale=100, sigma=0.5, min_size=50)
 #segments_slic = slic(img, n_segments=250, compactness=10, sigma=1)
 #segments_watershed = watershed(gradient, markers=250, compactness=0.001)
 #
-#print("Felzenszwalb number of segments: {}".format(len(np.unique(segments_fz))))
+print("Felzenszwalb number of segments: {}".format(len(np.unique(segments_fz))))
 #print('SLIC number of segments: {}'.format(len(np.unique(segments_slic))))
 print('Quickshift number of segments: {}'.format(len(np.unique(segments_quick))))
 #print('Watershed number of segments: {}'.format(len(np.unique(segments_watershed))))
 fig, ax = plt.subplots(2, 2, figsize=(25, 25), sharex=True, sharey=True)
-
-#ax[0, 0].imshow(mark_boundaries(img, segments_fz))
-#ax[0, 0].set_title("Felzenszwalbs's method")
+ 
+ax[0, 0].imshow(mark_boundaries(img, segments_fz))
+ax[0, 0].set_title("Felzenszwalbs's method")
 #ax[0, 1].imshow(mark_boundaries(img, segments_slic))
 #ax[0, 1].set_title('SLIC')
 ax[1, 0].imshow(mark_boundaries(img, segments_quick))
@@ -47,3 +48,5 @@ for a in ax.ravel():
 
 plt.tight_layout()
 plt.show()
+
+

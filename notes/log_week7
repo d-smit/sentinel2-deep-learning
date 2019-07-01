@@ -2,3 +2,17 @@ QGIS issues v frustrating
 
 - Sorted out DEM crs 
 - Need to think about resolution difference: 1 pixel of DEM ~ 2x3 s2
+
+4 types of segmentation: Felzenswalb (graph), Quickshift, SLIC and Compact watershed
+
+More here: 
+
+https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#sphx-glr-auto-examples-segmentation-plot-segmentations-py
+
+
+- Got segmentation working with true colour image, Felzenszwalb looking good
+	- Doesn't split up fields.
+	- Felz and Quick only ones that pick up roads well. 
+	
+- Segment ID pixel idea
+

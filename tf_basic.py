@@ -78,7 +78,7 @@ mosaic, out_trans = merge(band_ancillary_mosaic, indexes=range(12))
 
 pe = lc.PointExtractor(aoi)
  
-points_df = pe.get_n(3000)
+points_df = pe.get_n(500)
 
 bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']
  
