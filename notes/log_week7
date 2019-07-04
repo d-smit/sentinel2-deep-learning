@@ -47,6 +47,15 @@ lit review begins
 	- would mean could use pretrained model which has been trained up on dataset of single-label images.
 	- idea is that each patch to be predicted on in the new image would resemble the single-labelled training images. 
 
+- back to segmentation getting rasterstats working
+- tidied scripts 
+
+- WKT vs geojson - WKT can support various CRSs whereas GeoJson coordinates are all in WGS 84. 
+				 - WKT can support curved shapes, GeoJson cannot
+				 
+- WKT seems superior type for data parsing
+
+
 
 
 
