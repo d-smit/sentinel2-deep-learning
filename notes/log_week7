@@ -9,10 +9,45 @@ More here:
 
 https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#sphx-glr-auto-examples-segmentation-plot-segmentations-py
 
-
 - Got segmentation working with true colour image, Felzenszwalb looking good
 	- Doesn't split up fields.
 	- Felz and Quick only ones that pick up roads well. 
-	
+
 - Segment ID pixel idea
+
+- Trying to change DEM res in QGIS
+
+- validation set issue for s2 data
+
+- in general, semantic segmentation yields better (homogeneous) results than patch-wise classification
+
+- one patch only has one label, so many different classes are present in patch
+
+The problem with semantic segmentation is the lack of public available training data. 
+
+- could try to rasterize and generalize the OSM 
+
+https://www.openstreetmap.org/ 
+
+free land use vector data (Germany)
+https://www.bezreg-koeln.nrw.de/brk_internet/geobasis/landschaftsmodelle/basis_dlm/index.html
+
+after rasterization with gdal 
+https://gdal.org/programs/gdal_rasterize.html 
+
+data sets for aerial images, starting point for transfer learning
+
+DEM stuff - dem vastly different extent meaning appearing on diff zone of display, even if on same CRS 
+
+lit review begins 
+
+- predicting on patches but going through each class making a decision on each 
+
+-> patch method in order to train on new image which is broken up into patches 
+	- would mean could use pretrained model which has been trained up on dataset of single-label images.
+	- idea is that each patch to be predicted on in the new image would resemble the single-labelled training images. 
+
+
+
+
 
