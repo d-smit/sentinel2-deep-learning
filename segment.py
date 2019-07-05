@@ -94,6 +94,7 @@ image_plot = tiff.imread('masked_plot.tif')
 fig, ax = plt.subplots(1, 1, figsize=(25, 25), sharex=True, sharey=True)
 ax.imshow(mark_boundaries(image_plot, segments))
 plt.tight_layout()
+plt.savefig('masked_segmented.tif')
 plt.show()
 
 # Getting segment IDs from segments_df
@@ -104,13 +105,45 @@ segment_stats = zonal_stats(segment_df, 'data/swindon/masked.tif',
 # list where each element in as a dictionary
     # each dictionary key is a statistic
 
-seg_stats_df = pd.DataFrame(segment_stats)
-seg_stats_df = seg_stats_df.dropna()
+zones_df = pd.DataFrame(segment_stats)
+zones_df = zones_df.dropna()
 
-for seg in segment_stats:
-    for key in sorted(seg.keys()):
-        if seg['median'] > 1:
+# Go through every row, and if the mean value is within 25% mark, give it a 1,
+# if it is within 50% mark, give it a 2, if within 75%, 3, and 100% give it a 4.
+# else?
 
-#next((item for item in segment_stats if item['median'] == ), None)
-        #print('{}: {}'.format(key, seg[key]))
+zone_means = zones_df['mean']
+zones_df['zone_id'] = np.nan
+
+first = np.percentile(zone_means, 10)
+sec = np.percentile(zone_means, 25)
+thi = np.percentile(zone_means, 50)
+four = np.percentile(zone_means, 75)
+five = np.percentile(zone_means, 90)
+
+for idx, row in zones_df.iterrows():
+    if (zones_df.loc[idx, 'mean']) < 1.2 * first:
+        zones_df.set_value(idx, 'zone_id', 1)
+    elif 0.8 * first < (zones_df.loc[idx, 'mean']) < 1.1 * sec:
+        zones_df.set_value(idx, 'zone_id', 2)
+    elif 1.1 * sec < (zones_df.loc[idx, 'mean']) < 1.1 * thi:
+        zones_df.set_value(idx, 'zone_id', 3)
+    elif 1.1 * thi < (zones_df.loc[idx, 'mean']) < 1.1 * four:
+        zones_df.set_value(idx, 'zone_id', 4)
+    elif 1.1 * four < (zones_df.loc[idx, 'mean']) < 1.1 * five:
+        zones_df.set_value(idx, 'zone_id', 5)
+
+print(zones_df)
+
+# Now need to add zone_id column to extracted pixels dataframe
+
+
+
+
+
+
+    # if first < zones_df.loc[index,'mean'] < 1.05*first:
+    #     zones_df.loc[index, 'zone_id'] = 1
+
+
 
