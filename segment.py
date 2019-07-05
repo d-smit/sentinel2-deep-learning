@@ -58,36 +58,32 @@ aoi.to_file('data/aoi.geojson', driver='GeoJSON')
     
 # root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
 
-# # Reading and merging band data
+# Reading and merging band data
 
-# s2_band = 'S2A.SAFE'
-# data, profile = lc.merge_bands(s2_band, res='10')
+s2_band = 'S2A.SAFE'
+data, profile = lc.merge_bands(s2_band, res='10')
+print(len(data))  # this merges 4 bands twice
+data = data[0:4]
 
-# # Writing and masking band raster
+# Writing and masking band raster
 
-# lc.write_raster('data/swindon/merged.tif', data, profile)
-# lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
+lc.write_raster('data/swindon/merged.tif', data, profile)
+lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
 
 def create_segment_polygon(tif):
     data = tif.read()
-
-    '''Creating array where each entry is an array the 
-    width of the pic showing where boundaries are '''
-
     print("Segmenting S2 image using quickshift")
     segments = felzenszwalb(np.moveaxis(data, 0, -1),  scale=100, sigma=0.5, min_size=50)
     print("Extracting shapes")
+
     '''Using rasterio shape function to generate shapes
     based on these pixel values representing boundary lines '''
 
     shapes = list(features.shapes(segments.astype(np.int32), transform=tif.transform))
     print("Creating GeoDataFrame from polygon segments.")
-
     seg_gdf = gpd.GeoDataFrame.from_dict(shapes)
-
     seg_gdf['geometry'] = seg_gdf[0].apply(lambda x: shape(geojson.loads(json.dumps(x))))
     seg_gdf.crs = tif.crs
-
     print("Segment CRS: {}".format(seg_gdf.crs))
     return seg_gdf.drop([0, 1], axis=1), segments, shapes
 
@@ -117,12 +113,11 @@ def get_zones_and_dists(df):
     segment_stats = zonal_stats(df, 'data/swindon/masked.tif',
                                 stats = 'count min mean max median')
 
-    print('Creating zone dataframe and extracting zone mean values')
-
     zones_df = pd.DataFrame(segment_stats)
     zones_df = zones_df.dropna()
-    zone_means = zones_df['mean']
     zones_df['zone_id'] = np.nan
+
+    zone_means = zones_df['mean']
 
     dists = [10, 25, 50, 75, 90]
 
@@ -139,12 +134,16 @@ def tag_zones(df, dv):
     for idx, row in df.iterrows():
         if (df.loc[idx, 'mean']) < 1.2 * dv[0]:
             df.set_value(idx, 'zone_id', 1)
+
         elif 0.8 * dv[0] < (df.loc[idx, 'mean']) < 1.1 * dv[1]:
             df.set_value(idx, 'zone_id', 2)
+
         elif 1.1 * dv[1] < (df.loc[idx, 'mean']) < 1.1 * dv[2]:
             df.set_value(idx, 'zone_id', 3)
+
         elif 1.1 * dv[2] < (df.loc[idx, 'mean']) < 1.1 * dv[3]:
             df.set_value(idx, 'zone_id', 4)
+
         elif 1.1 * dv[3] < (df.loc[idx, 'mean']) < 1.1 * dv[4]:
             df.set_value(idx, 'zone_id', 5)
 
@@ -152,55 +151,54 @@ def tag_zones(df, dv):
 
     return df
 
-tif = rio.open('data/swindon/masked.tif')
-segment_df, segments, shapes = create_segment_polygon(tif)
-zones_df, dist_values = get_zones_and_dists(segment_df)
-zones_df = tag_zones(zones_df, dist_values)
+def match_segment_id(pixel_df, poly_df):
 
+    for idx, row in pixel_df.iterrows():
+        point = pixel_df.loc[idx, 'geometry']
+
+        for i in range(0, poly_df.shape[0] - 1):
+              poly = poly_df.iloc[i, 0]
+
+              if poly.contains(point):
+                  pixel_df.loc[idx, 'segment_id'] = poly_df.iloc[i, 1]
+              else:
+                  pass
+
+    return pixel_df     # this takes ages
+
+tif = rio.open('data/swindon/masked.tif')
+
+segment_df, segments, shapes = create_segment_polygon(tif)
+#zones_df, dist_values = get_zones_and_dists(segment_df)
+zones_df = tag_zones(zones_df, dist_values)
 segment_df['polygon id'] = zones_df['zone_id']
-segment_df = segment_df.dropna()
+
+# segment_df = segment_df.dropna()
 
 # Now need to add zone_id column to extracted pixels dataframe
 
 pe = lc.PointExtractor(aoi)
- 
+
 points_df = pe.get_n(5000)
 
-bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']
+bands = ['B02', 'B03', 'B04', 'B08']
 
 points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
-
 points_df['segment_id'] = np.nan
-
-for idx, row in points_df.iterrows():
-    point = points_df.loc[idx, 'geometry']
-    for i in range(0, segment_df.shape[0] - 1):
-          poly = segment_df.iloc[i, 0]
-          if poly.contains(point):
-              points_df.loc[idx, 'segment_id'] = segment_df.iloc[i, 1]
-          else:
-              pass
-
+#points_df = match_segment_id(points_df, segment_df)
 points_df = lc.sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
 
-points_df = points_df.dropna()
- 
 clean_df = lc.remove_outliers(points_df, bands=bands, indices=False)
 clean_df = lc.calc_indices(clean_df)
 
 class_cols = 'labels_1'
  
-predictors = ['B01_1', 'B02_1', 'B03_1',
-              'B04_1', 'B05_1', 'B06_1',
-              'B07_1', 'B08_1', 'ndwi',
-              ]
+predictors = ['B02_1','B03_1',
+            'B04_1','B08_1',
+            'ndwi',
+            'segment_id']
 
-clean_df = clean_df.drop(['savi'], axis=1)
-clean_df = clean_df.drop(['evi'], axis=1)
-clean_df = clean_df.drop(['ndvi'], axis=1)
-
-# Check what segment every pixel in clean_df is in by looking at its geometry
-# if pixel(x,y) is within segment(x,y) then pixel zone_id[] = segment zone_id[]
+clean_df = clean_df.drop(['savi', 'evi', 'ndvi'], axis=1)
 
 X = clean_df[predictors]
 X = X.values
@@ -212,7 +210,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 X_train = preprocessing.scale(X_train)
 X_test = preprocessing.scale(X_test)
 
-preds = len(predictors);preds
+preds = len(predictors)
 labs = len(list(clean_df[class_cols].unique()))
 
 input_num_units = preds
@@ -282,13 +280,13 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.show()
 
-# Model evaluation with test data set 
+# Model evaluation with test data set
 # Prediction at test data set
 
 y_pred = model.predict(X_test)
 score = model.evaluate(X_test, y_test, batch_size=100, verbose=1)
 
-score_2 = model.score(X_test, y_test)
+# score_2 = model.score(X_test, y_test)
 print(score)
 print("Baseline Error: %.2f%%" % (100-score[1]*100))
 
