@@ -63,4 +63,10 @@ an issue
 
 - need to figure out how to attach segment tags to pixel df 
 
+- segmented (pixel-wise) done -> ~70% acc so far with 5000 points and primitive DNN
+
+- more tidying
+
+- stupid band error, was somehow duplicating 4 bands to get 8.. 
+
 

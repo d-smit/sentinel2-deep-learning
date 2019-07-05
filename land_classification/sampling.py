@@ -91,4 +91,5 @@ def sample_raster(df, path, bands=['B02', 'B03', 'B04', 'B08'], buffer=0):
     cols = [band + '_' + str(v+1) for band in bands for v in range(values[0].shape[1] * values[0].shape[2])]
     new_df = pd.DataFrame(data=list(map(lambda x: x.flatten(), values)), columns=cols)
     df[new_df.columns] = new_df
+    df = df.dropna()
     return df
