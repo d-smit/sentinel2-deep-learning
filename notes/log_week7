@@ -67,6 +67,14 @@ an issue
 
 - more tidying
 
-- stupid band error, was somehow duplicating 4 bands to get 8.. 
+- band error: merge_bands was duplicating 4 bands to get 8
+ - was reading jp2 files from two sources within S2A.SAFE directory 
+ 
+- making separate segmentation script with just functions, import errors
+
+- need to speed up code -> looping through pd dfs bad. need to use apply func and/or convert to np series
+- cython?
+- pandas is built on numpy which is designed for vector manipulation, making loops inefficient 
+- have been using iterrows, this gives a tuple and is slow to loop through 
 
 

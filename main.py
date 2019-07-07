@@ -25,9 +25,9 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from skimage.segmentation import felzenszwalb, quickshift
 
-from segment import *
+import segment as seg
 
-print('import done')
+print('Imports done')
 
 # Defining Swindon area of interest
 
@@ -56,17 +56,19 @@ aoi.to_file('data/aoi.geojson', driver='GeoJSON')
 
 tif = rio.open('data/swindon/masked.tif')
 
-segment_df, segments, shapes = create_segment_polygon(tif)
+segment_df, segments, shapes = seg.create_segment_polygon(tif)
 
-zones_df, dist_values = get_zones_and_dists(segment_df)
+zones_df, dist_values = seg.get_zones_and_dists(segment_df)
 
-zones_df = tag_zones(zones_df, dist_values)
+zones_df = seg.tag_zones(zones_df, dist_values)
 
 segment_df['polygon id'] = zones_df['zone_id']
 
+segment_df = segment_df.dropna()
+
 pe = lc.PointExtractor(aoi)
- 
-points_df = pe.get_n(100)
+
+points_df = pe.get_n(50000)
 
 bands = ['B02', 'B03', 'B04', 'B08']
 
@@ -74,20 +76,60 @@ points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['lab
 
 points_df['segment_id'] = np.nan
 
-points_df = match_segment_id(points_df, segment_df)
+# points_test = points_df.iloc[0:1000,:]
+# segment_test = segment_df.iloc[0:1000,:]
+#points_df['segment_id'] = points_df.iloc[:,-1].apply(lambda x: )
+#  zones_df['zone_id'] = zones_df['zone_id'].apply(lambda row: mean_comp(dv, row))
+#  points_df = match_segment_id(points_test, segment_test)
+
+# def match_segment_id(pixel_df, poly_df):
+#     print('Matching pixels with their segment ID...')
+
+#     ''' Parsing through the extracted points and matching
+#         each pixel with the segment ID of the segment
+#         that contains it. '''
+
+#     #for i, row in enumerate(pixel_df.itertuples(), 0):
+
+#     def comp(pixel_df, poly_df):
+#         point = pixel_df.at[x, 'geometry']
+
+#         for j in range(len(poly_df)):
+#               poly = poly_df.iat[j, 0]
+
+#               if poly.contains(point):
+#                   pixel_df.at[x, 'segment_id'] = poly_df.iat[j, 1]
+#               else:
+#                   pass
+
+#     pixel_df.apply(lambda x: comp(pixel_df, poly_df, x), axis=1)
+
+#     return pixel_df
+
+# def comp(pixel_df, poly_df, row):
+#     point = pixel_df['geometry'][ind]
+
+#     for j in range(len(poly_df)):
+#           poly = poly_df.iat[j, 0]
+
+#           if poly.contains(point):
+#               pixel_df.at[row, 'segment_id'] = poly_df.iat[j, 1]
+#           else:
+#               pass
+
+# points_df[3].apply(lambda row: comp(points_df, segment_df, row), axis=1)
+
+points_df = seg.match_segment_id(points_df, segment_df)
 
 points_df = lc.sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
  
 clean_df = lc.remove_outliers(points_df, bands=bands, indices=False)
 clean_df = lc.calc_indices(clean_df)
+clean_df = clean_df.drop(['savi', 'evi', 'ndvi'], axis=1)
 
 class_cols = 'labels_1'
  
-predictors = ['B02_1', 'B03_1', 'B04_1', 'B08_1', 'ndwi']
-
-clean_df = clean_df.drop(['savi'], axis=1)
-clean_df = clean_df.drop(['evi'], axis=1)
-clean_df = clean_df.drop(['ndvi'], axis=1)
+predictors = ['B02_1', 'B03_1', 'B04_1', 'B08_1', 'ndwi', 'segment_id']
 
 X = clean_df[predictors]
 X = X.values
@@ -145,7 +187,7 @@ model.compile(loss='sparse_categorical_crossentropy',
               optimizer='sgd',
               metrics=['accuracy'])
 
-history=model.fit(X_train, 
+history=model.fit(X_train,
           y_train,
           epochs=100, 
           batch_size=100, 
@@ -178,4 +220,4 @@ print(score)
 print("Baseline Error: %.2f%%" % (100-score[1]*100))
 
 if __name__ == "__main__":
-    segment
+    seg

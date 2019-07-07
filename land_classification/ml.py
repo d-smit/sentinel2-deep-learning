@@ -40,8 +40,6 @@ def classify(df,
         cls <- the classifier model if you need to review it further
     """
 
-    temp_bands = ['B01_1', 'B02_1', 'B03_1', 'B04_1', 'B05_1', 'B06_1', 'B07_1', 'B08_1']
-
     assert isinstance(pred_path, str) or isinstance(pred_path, rio.DatasetReader)
     #print(bands)
     if isinstance(pred_path, str):
@@ -58,7 +56,7 @@ def classify(df,
         X = df.drop(class_cols + ['labels_1'] + [0], axis=1)
         bands = list(X.columns)
     else:
-        X = df[temp_bands]
+        X = df[bands]
 
     y = df[class_cols]
 
@@ -66,7 +64,7 @@ def classify(df,
 
     profile = mask_src.profile
     data = mask_src.read(list(pl.arange(mask_src.count) + 1))
-    gdf = create_raster_df(data, bands=temp_bands)
+    gdf = create_raster_df(data, bands)
     gdf = calc_indices(gdf)
 
     if cv:
@@ -78,11 +76,11 @@ def classify(df,
 
     cls = algorithm
     cls.fit(X_train, y_train)
-    out = cls.predict(gdf[temp_bands])
+    out = cls.predict(gdf[bands])
     if onehot:
         out = pl.argmax(out, axis=1)
     pred = out.reshape((1, data.shape[1], data.shape[2])).astype(pl.int16)
-    proba = cls.predict_proba(gdf[temp_bands]).max(axis=1).reshape(1, data.shape[1], data.shape[2])
+    proba = cls.predict_proba(gdf[bands]).max(axis=1).reshape(1, data.shape[1], data.shape[2])
     print(pred)
     print(proba)
     if not os.path.exists('outputs'):

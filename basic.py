@@ -25,47 +25,48 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from skimage.segmentation import felzenszwalb, quickshift
 
+from segment import get_zones_and_dists
 # Defining Swindon area of interest
+print('import done')
 
-aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
-aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
-aoi.crs = from_epsg(4326)
-aoi.to_file('data/aoi.geojson', driver='GeoJSON')
+# aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
+# aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
+# aoi.crs = from_epsg(4326)
+# aoi.to_file('data/aoi.geojson', driver='GeoJSON')
 
-# Getting land-cover classes 
+# # Getting land-cover classes 
 
-with open('data/labels.json') as jf:
-    names = json.load(jf)
+# with open('data/labels.json') as jf:
+#     names = json.load(jf)
     
-root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
+# root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
 
 
-# Reading and merging band data
+# # Reading and merging band data
 
-s2_band = 'S2A.SAFE'
-data, profile = lc.merge_bands(s2_band, res='10')
+# s2_band = 'S2A.SAFE'
+# data, profile = lc.merge_bands(s2_band, res='10')
 
-# Writing and masking band raster
+# # Writing and masking band raster
 
-lc.write_raster('data/swindon/merged.tif', data, profile)
-lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
+# lc.write_raster('data/swindon/merged.tif', data, profile)
+# lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
 
 pe = lc.PointExtractor(aoi)
  
 points_df = pe.get_n(500)
 
-bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08']
- 
+bands = ['B02', 'B03', 'B04', 'B08']
 
 points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
 points_df = lc.sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
  
 clean_df = lc.remove_outliers(points_df, bands=bands, indices=False)
 clean_df = lc.calc_indices(clean_df)
- 
+
 class_cols = 'labels_1'
  
-predictors = ['B01_1', 'B02_1', 'B03_1', 'B04_1', 'B05_1', 'B06_1', 'B07_1', 'B08_1', 'ndwi']
+predictors = ['B02_1', 'B03_1', 'B04_1', 'B08_1', 'ndwi']
 
 clean_df = clean_df.drop(['savi'], axis=1)
 clean_df = clean_df.drop(['evi'], axis=1)
@@ -159,3 +160,5 @@ score = model.evaluate(X_test, y_test, batch_size=100, verbose=1)
 print(score)
 print("Baseline Error: %.2f%%" % (100-score[1]*100))
 
+if __name__ == "__main__":
+    get_zones_and_dists

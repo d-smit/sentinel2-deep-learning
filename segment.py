@@ -26,48 +26,8 @@ from skimage.segmentation import mark_boundaries
 from skimage.segmentation import felzenszwalb
 import tifffile as tiff
 import scipy.misc
-import random
-
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.regularizers import l2
-from keras import optimizers
-from sklearn.model_selection import train_test_split
-from sklearn import preprocessing
-from sklearn.metrics import confusion_matrix
-
-# seed = 42
-
-# random.seed(seed)
-# np.random.seed(seed)
-# tf.set_random_seed(seed)
-# # Defining Swindon area of interest
-
-# aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
-# aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
-# aoi.crs = from_epsg(4326)
-# aoi.to_file('data/aoi.geojson', driver='GeoJSON')
-
-# # # Getting land-cover classes 
-
-# # with open('data/labels.json') as jf:
-# #     names = json.load(jf)
-    
-# # root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
-
-# # Reading and merging band data
-
-# s2_band = 'S2A.SAFE'
-# data, profile = lc.merge_bands(s2_band, res='10')
-
-# # Writing and masking band raster
-
-# lc.write_raster('data/swindon/merged.tif', data, profile)
-# lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
 
 def create_segment_polygon(tif):
-
     data = tif.read()
     print("Segmenting S2 image using quickshift")
     segments = felzenszwalb(np.moveaxis(data, 0, -1),  scale=100, sigma=0.5, min_size=50)
@@ -83,7 +43,6 @@ def create_segment_polygon(tif):
 # Background image
 
 def plot_segments(segments):
-
     print('Plotting segments over scene render...')
 
     image_to_plot = rio.open('data/segment/masked_image_render.tif')
@@ -102,7 +61,6 @@ def plot_segments(segments):
 # Getting segment IDs from segments_df
 
 def get_zones_and_dists(df):
-
     print('Getting zonal stats for segments over scene...')
 
     ''' Getting zonal stats for each segment and calculating 
@@ -128,52 +86,50 @@ def get_zones_and_dists(df):
     return zones_df, tuple(dist_values)
 
 def tag_zones(df, dv):
-
     print('Tagging zones...')
 
     ''' Giving each segment a number between 1-5 based on their 
         similarity to the distribution percentiles. '''
 
     for idx, row in df.iterrows():
-        if (df.loc[idx, 'mean']) < 1.2 * dv[0]:
-            df.set_value(idx, 'zone_id', 1)
+        if (df.at[idx, 'mean']) < 1.2 * dv[0]:
+            df.at[idx, 'zone_id'] = 1
 
-        elif 0.8 * dv[0] < (df.loc[idx, 'mean']) < 1.1 * dv[1]:
-            df.set_value(idx, 'zone_id', 2)
+        elif 1.2 * dv[0] < (df.at[idx, 'mean']) < 1.1 * dv[1]:
+            df.at[idx, 'zone_id'] = 2
 
-        elif 1.1 * dv[1] < (df.loc[idx, 'mean']) < 1.1 * dv[2]:
-            df.set_value(idx, 'zone_id', 3)
+        elif 1.1 * dv[1] < (df.at[idx, 'mean']) < 1.1 * dv[2]:
+            df.at[idx, 'zone_id'] = 3
 
-        elif 1.1 * dv[2] < (df.loc[idx, 'mean']) < 1.1 * dv[3]:
-            df.set_value(idx, 'zone_id', 4)
+        elif 1.1 * dv[2] < (df.at[idx, 'mean']) < 1.2 * dv[3]:
+            df.at[idx, 'zone_id'] = 4
 
-        elif 1.1 * dv[3] < (df.loc[idx, 'mean']) < 1.1 * dv[4]:
-            df.set_value(idx, 'zone_id', 5)
+        elif 1.2 * dv[3] < (df.at[idx, 'mean']):
+            df.at[idx, 'zone_id'] = 5
 
     df = df.dropna()
 
     return df
 
 def match_segment_id(pixel_df, poly_df):
-
     print('Matching pixels with their segment ID...')
 
     ''' Parsing through the extracted points and matching
         each pixel with the segment ID of the segment
         that contains it. '''
 
-    for idx, row in pixel_df.iterrows():
-        point = pixel_df.loc[idx, 'geometry']
+    for i, row in enumerate(pixel_df.itertuples(), 0):
+        point = pixel_df.at[i, 'geometry']
 
-        for i in range(0, poly_df.shape[0] - 1):
-              poly = poly_df.iloc[i, 0]
+        for j in range(len(poly_df)):
+              poly = poly_df.iat[j, 0]
 
               if poly.contains(point):
-                  pixel_df.loc[idx, 'segment_id'] = poly_df.iloc[i, 1]
+                  pixel_df.at[i, 'segment_id'] = poly_df.iat[j, 1]
               else:
                   pass
 
-    return pixel_df     # this takes ages
+    return pixel_df    # trying to make this faster
 
 # tif = rio.open('data/swindon/masked.tif')
 
