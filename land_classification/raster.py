@@ -70,7 +70,7 @@ def merge_bands(safe_id, res='10'):
         bands <- the bands to use.
     """
     
-    files = glob(root_path + '/data/{}/**/R{}m/*_B*'.format(safe_id, res), recursive=True)
+    files = glob(root_path + '/data/{}/R{}m/*_B*'.format(safe_id, res), recursive=True)
     files.sort()
     tifs = list(map(rio.open, files))
     data = pl.stack(list(map(lambda x: x.read(1).astype(pl.int16), tifs)))

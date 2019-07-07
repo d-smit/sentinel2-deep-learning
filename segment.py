@@ -12,7 +12,6 @@ import pylab as pl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
 import land_classification as lc
 
 from rasterio import features
@@ -38,7 +37,6 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.metrics import confusion_matrix
 
-
 # seed = 42
 
 # random.seed(seed)
@@ -46,39 +44,34 @@ from sklearn.metrics import confusion_matrix
 # tf.set_random_seed(seed)
 # # Defining Swindon area of interest
 
-aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
-aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
-aoi.crs = from_epsg(4326)
-aoi.to_file('data/aoi.geojson', driver='GeoJSON')
+# aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
+# aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
+# aoi.crs = from_epsg(4326)
+# aoi.to_file('data/aoi.geojson', driver='GeoJSON')
 
-# # Getting land-cover classes 
+# # # Getting land-cover classes 
 
-# with open('data/labels.json') as jf:
-#     names = json.load(jf)
+# # with open('data/labels.json') as jf:
+# #     names = json.load(jf)
     
-# root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
+# # root_path = check_output(['git', 'rev-parse', '--show-toplevel']).strip().decode()
 
-# Reading and merging band data
+# # Reading and merging band data
 
-s2_band = 'S2A.SAFE'
-data, profile = lc.merge_bands(s2_band, res='10')
-print(len(data))  # this merges 4 bands twice
-data = data[0:4]
+# s2_band = 'S2A.SAFE'
+# data, profile = lc.merge_bands(s2_band, res='10')
 
-# Writing and masking band raster
+# # Writing and masking band raster
 
-lc.write_raster('data/swindon/merged.tif', data, profile)
-lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
+# lc.write_raster('data/swindon/merged.tif', data, profile)
+# lc.mask_raster(aoi, 'data/swindon/merged.tif', 'data/swindon/masked.tif')
 
 def create_segment_polygon(tif):
+
     data = tif.read()
     print("Segmenting S2 image using quickshift")
     segments = felzenszwalb(np.moveaxis(data, 0, -1),  scale=100, sigma=0.5, min_size=50)
     print("Extracting shapes")
-
-    '''Using rasterio shape function to generate shapes
-    based on these pixel values representing boundary lines '''
-
     shapes = list(features.shapes(segments.astype(np.int32), transform=tif.transform))
     print("Creating GeoDataFrame from polygon segments.")
     seg_gdf = gpd.GeoDataFrame.from_dict(shapes)
@@ -90,6 +83,8 @@ def create_segment_polygon(tif):
 # Background image
 
 def plot_segments(segments):
+
+    print('Plotting segments over scene render...')
 
     image_to_plot = rio.open('data/segment/masked_image_render.tif')
     data = image_to_plot.read()
@@ -109,6 +104,9 @@ def plot_segments(segments):
 def get_zones_and_dists(df):
 
     print('Getting zonal stats for segments over scene...')
+
+    ''' Getting zonal stats for each segment and calculating 
+        mean distributions. '''
 
     segment_stats = zonal_stats(df, 'data/swindon/masked.tif',
                                 stats = 'count min mean max median')
@@ -130,6 +128,11 @@ def get_zones_and_dists(df):
     return zones_df, tuple(dist_values)
 
 def tag_zones(df, dv):
+
+    print('Tagging zones...')
+
+    ''' Giving each segment a number between 1-5 based on their 
+        similarity to the distribution percentiles. '''
 
     for idx, row in df.iterrows():
         if (df.loc[idx, 'mean']) < 1.2 * dv[0]:
@@ -153,6 +156,12 @@ def tag_zones(df, dv):
 
 def match_segment_id(pixel_df, poly_df):
 
+    print('Matching pixels with their segment ID...')
+
+    ''' Parsing through the extracted points and matching
+        each pixel with the segment ID of the segment
+        that contains it. '''
+
     for idx, row in pixel_df.iterrows():
         point = pixel_df.loc[idx, 'geometry']
 
@@ -166,129 +175,130 @@ def match_segment_id(pixel_df, poly_df):
 
     return pixel_df     # this takes ages
 
-tif = rio.open('data/swindon/masked.tif')
+# tif = rio.open('data/swindon/masked.tif')
 
-segment_df, segments, shapes = create_segment_polygon(tif)
-#zones_df, dist_values = get_zones_and_dists(segment_df)
-zones_df = tag_zones(zones_df, dist_values)
-segment_df['polygon id'] = zones_df['zone_id']
+# segment_df, segments, shapes = create_segment_polygon(tif)
+# #zones_df, dist_values = get_zones_and_dists(segment_df)
+# zones_df = tag_zones(zones_df, dist_values)
 
-# segment_df = segment_df.dropna()
+# segment_df['polygon id'] = zones_df['zone_id']
 
-# Now need to add zone_id column to extracted pixels dataframe
+# # segment_df = segment_df.dropna()
 
-pe = lc.PointExtractor(aoi)
+# # Now need to add zone_id column to extracted pixels dataframe
 
-points_df = pe.get_n(5000)
+# pe = lc.PointExtractor(aoi)
 
-bands = ['B02', 'B03', 'B04', 'B08']
+# points_df = pe.get_n(5000)
 
-points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
-points_df['segment_id'] = np.nan
-#points_df = match_segment_id(points_df, segment_df)
-points_df = lc.sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
+# bands = ['B02', 'B03', 'B04', 'B08']
 
-clean_df = lc.remove_outliers(points_df, bands=bands, indices=False)
-clean_df = lc.calc_indices(clean_df)
+# points_df = lc.sample_raster(points_df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
+# points_df['segment_id'] = np.nan
+# #points_df = match_segment_id(points_df, segment_df)
+# points_df = lc.sample_raster(points_df, 'data/swindon/masked.tif', bands=bands)
 
-class_cols = 'labels_1'
+# clean_df = lc.remove_outliers(points_df, bands=bands, indices=False)
+# clean_df = lc.calc_indices(clean_df)
+
+# class_cols = 'labels_1'
  
-predictors = ['B02_1','B03_1',
-            'B04_1','B08_1',
-            'ndwi',
-            'segment_id']
+# predictors = ['B02_1','B03_1',
+#               'B04_1','B08_1',
+#               'ndwi',
+#               'segment_id']
 
-clean_df = clean_df.drop(['savi', 'evi', 'ndvi'], axis=1)
+# clean_df = clean_df.drop(['savi', 'evi', 'ndvi'], axis=1)
 
-X = clean_df[predictors]
-X = X.values
-y = clean_df[class_cols]
-y = y.values
+# X = clean_df[predictors]
+# X = X.values
+# y = clean_df[class_cols]
+# y = y.values
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
-X_train = preprocessing.scale(X_train)
-X_test = preprocessing.scale(X_test)
+# X_train = preprocessing.scale(X_train)
+# X_test = preprocessing.scale(X_test)
 
-preds = len(predictors)
-labs = len(list(clean_df[class_cols].unique()))
+# preds = len(predictors)
+# labs = len(list(clean_df[class_cols].unique()))
 
-input_num_units = preds
-hidden1_num_units = 200
-hidden2_num_units = 200
-hidden3_num_units = 200
-hidden4_num_units = 200
-output_num_units = labs
+# input_num_units = preds
+# hidden1_num_units = 200
+# hidden2_num_units = 200
+# hidden3_num_units = 200
+# hidden4_num_units = 200
+# output_num_units = labs
 
-model = Sequential([
-    Dense(output_dim=hidden1_num_units,
-          input_dim=input_num_units,
-          kernel_regularizer=l2(0.0001),
-          activation='relu'),
-    Dropout(0.2),
-    Dense(output_dim=hidden2_num_units,
-          input_dim=hidden1_num_units,
-          kernel_regularizer=l2(0.0001),
-          activation='relu'),
-    Dropout(0.2),
-    Dense(output_dim=hidden3_num_units,
-          input_dim=hidden2_num_units,
-          kernel_regularizer=l2(0.0001),
-          activation='relu'),
-    Dropout(0.1),
-    Dense(output_dim=hidden4_num_units,
-          input_dim=hidden3_num_units,
-          kernel_regularizer=l2(0.0001),
-          activation='relu'),
-    Dropout(0.1),
-    Dense(output_dim=(max(clean_df[class_cols])+1),
-          input_dim=hidden4_num_units, 
-          activation='softmax'),
- ])
+# model = Sequential([
+#     Dense(output_dim=hidden1_num_units,
+#           input_dim=input_num_units,
+#           kernel_regularizer=l2(0.0001),
+#           activation='relu'),
+#     Dropout(0.2),
+#     Dense(output_dim=hidden2_num_units,
+#           input_dim=hidden1_num_units,
+#           kernel_regularizer=l2(0.0001),
+#           activation='relu'),
+#     Dropout(0.2),
+#     Dense(output_dim=hidden3_num_units,
+#           input_dim=hidden2_num_units,
+#           kernel_regularizer=l2(0.0001),
+#           activation='relu'),
+#     Dropout(0.1),
+#     Dense(output_dim=hidden4_num_units,
+#           input_dim=hidden3_num_units,
+#           kernel_regularizer=l2(0.0001),
+#           activation='relu'),
+#     Dropout(0.1),
+#     Dense(output_dim=(max(clean_df[class_cols])+1),
+#           input_dim=hidden4_num_units, 
+#           activation='softmax'),
+#  ])
     
-model.summary()
+# model.summary()
 
-sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+# sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 
-# Compile model
+# # Compile model
 
-model.compile(loss='sparse_categorical_crossentropy',
-              optimizer='sgd',
-              metrics=['accuracy'])
+# model.compile(loss='sparse_categorical_crossentropy',
+#               optimizer='sgd',
+#               metrics=['accuracy'])
 
-history=model.fit(X_train, 
-          y_train,
-          epochs=100, 
-          batch_size=100, 
-          validation_split = 0.2,
-          verbose=1,
-          )
+# history=model.fit(X_train, 
+#           y_train,
+#           epochs=100, 
+#           batch_size=100, 
+#           validation_split = 0.2,
+#           verbose=1,
+#           )
 
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='lower right')
-plt.show()
+# plt.plot(history.history['acc'])
+# plt.plot(history.history['val_acc'])
+# plt.title('model accuracy')
+# plt.ylabel('accuracy')
+# plt.xlabel('epoch')
+# plt.legend(['train', 'test'], loc='lower right')
+# plt.show()
 
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper right')
-plt.show()
+# plt.plot(history.history['loss'])
+# plt.plot(history.history['val_loss'])
+# plt.title('model loss')
+# plt.ylabel('loss')
+# plt.xlabel('epoch')
+# plt.legend(['train', 'test'], loc='upper right')
+# plt.show()
 
-# Model evaluation with test data set
-# Prediction at test data set
+# # Model evaluation with test data set
+# # Prediction at test data set
 
-y_pred = model.predict(X_test)
-score = model.evaluate(X_test, y_test, batch_size=100, verbose=1)
+# y_pred = model.predict(X_test)
+# score = model.evaluate(X_test, y_test, batch_size=100, verbose=1)
 
-# score_2 = model.score(X_test, y_test)
-print(score)
-print("Baseline Error: %.2f%%" % (100-score[1]*100))
+# # score_2 = model.score(X_test, y_test)
+# print(score)
+# print("Baseline Error: %.2f%%" % (100-score[1]*100))
 
 # Load and prepare the dataset to predict on
 
