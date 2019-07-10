@@ -41,9 +41,10 @@ for row in range(input_height, num_rows - input_height):
         patches[idx, ...] = image[row-int(input_height/2):row+int(input_height/2),
                                   col-int(input_height/2):col+int(input_height/2), :]
 
-start = time.time()
 
 print('Making patch-wise predictions...')
+start = time.time()
+
 # get an array of len(rows*pixels) arrays each of len(num_classes) per patch showing preds
 patches_clfd = model.predict(patches)
 
