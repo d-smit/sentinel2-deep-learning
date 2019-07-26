@@ -6,25 +6,22 @@ import random as rn
 rn.seed(1)
 
 import os
-import pandas as pd
-import numpy as np
-import pylab as pl
+import time
 import json
+import numpy as np
 import matplotlib.pyplot as plt
 
-from keras.applications.xception import Xception
-from keras.preprocessing.image import ImageDataGenerator
-from keras.models import Model
+# from keras.applications.xception import Xception
+from keras_preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import BatchNormalization
-from keras.optimizers import SGD
-
-from sklearn.model_selection import train_test_split
-
+# from keras.optimizers import SGD
+from PIL import Image
 import tensorflow as tf
 from keras.backend import tensorflow_backend
+
 config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True))
 session = tf.Session(config=config)
 tensorflow_backend.set_session(session)
@@ -35,41 +32,51 @@ print('Imports done')
 
 root_path = os.getcwd()
 
-path_to_images = root_path + '/data/merge/'
-path_to_split = root_path + '/data/split/'
-path_to_train = root_path  + '/data/split/train/'
-path_to_validation = root_path + '/data/split/validation/'
-path_to_merge = root_path + '/data/merge/'
+Server = True
 
-with open('data/corine_labels.json') as jf:
-    names = json.load(jf)
-rd.build_dirs()
+if Server:
+    with open('/home/strathclyde/DATA/corine_labels.json') as jf:
+        names = json.load(jf)
+
+    path_to_images = root_path + '/DATA/bigearth/sample/'
+    path_to_merge = root_path + '/DATA/bigearth/merge/'
+
+    print('image store: {}'.format(path_to_images))
+    print('merged to use: {}'.format(path_to_merge))
+
+else:
+    with open('data/corine_labels.json') as jf:
+        names = json.load(jf)
+
+    path_to_images = root_path + '/data/sample/'
+    path_to_merge = root_path + '/data/merge/'
+
+st = time.time()
+
 patches = [patches for patches in os.listdir(path_to_images)]
 
 patches, split_point = rd.get_patches(patches)
 
+print('patch count: {}'.format(len(patches)))
+print('split point: {}'.format(split_point))
+
 class_count, df = rd.read_patch(split_point)
 
-X = df.path
-y = df.labels
+# print('df : {}'.format(df.head()))
+# print(set(df['labels']))
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
+print(set(df['path'].apply(lambda x: os.path.exists(x))))
 
-train_dict = {'path': X_train, 'labels': y_train}
-train_df = pd.DataFrame(train_dict)
-
-test_dict = {'path': X_test, 'labels': y_test}
-test_df = pd.DataFrame(test_dict)
+df['path'].apply(lambda x: Image.open(x))
+# mask = np.column_stack([df['labels'].str.contains(r"'Pastures', 'Broad-leaved forest'", na=False)])
+# df2 = df.loc[mask.any(axis=1)]
+# print(df2)
 
 num_classes = len(names.values())
 
-# path_check_shape = path_to_train + 'Coniferous forest/'
-# tifs = [tif for tif in os.listdir(path_check_shape)]
-# im = Image.open(path_check_shape+tifs[10])
-# im = np.array(im)
-# input_shape = im.shape
-
-# Basic CNN
+en = time.time()
+t = en - st
+print('Images ready in: {} minutes'.format(int(t/60)))
 
 model = Sequential()
 model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(120,120,3)))
@@ -86,7 +93,6 @@ model.add(Dropout(0.5))
 model.add(Dense(num_classes, activation='softmax'))
 
 # ConvNet
-
 # model = Sequential()
 # model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(256, 256, 3)))
 # model.add(Conv2D(32, (3, 3), activation='relu'))
@@ -102,7 +108,6 @@ model.add(Dense(num_classes, activation='softmax'))
 # model.add(Dense(num_classes, activation='softmax'))
 
 # Xception
-
 # base_model = Xception(input_shape=(256, 256, 3), weights=None)
 # separate model for giving the class predictions
 # top_model = base_model.output
@@ -113,13 +118,15 @@ model.add(Dense(num_classes, activation='softmax'))
 
 print('Normalizing images...')
 
-train_datagen = ImageDataGenerator(rescale=1.0/255.0)
-test_datagen = ImageDataGenerator(rescale=1.0/255.0)
+# data_gen = ImageDataGenerator(rescale=1.0/255.0, validation_split=0.3)
+data_gen = ImageDataGenerator(validation_split=0.3)
 
 print('Flowing training set...')
 
-training_data = train_datagen.flow_from_dataframe(
-                dataframe = train_df,
+# directory = path_to_merge,
+
+training_data = data_gen.flow_from_dataframe(
+                dataframe = df,
                 x_col = 'path',
                 y_col = 'labels',
                 subset = "training",
@@ -132,8 +139,8 @@ training_data = train_datagen.flow_from_dataframe(
 
 print('Flowing validation set...')
 
-testing_data = test_datagen.flow_from_dataframe(
-                dataframe = test_df,
+validation_data = data_gen.flow_from_dataframe(
+                dataframe = df,
                 x_col = 'path',
                 y_col = 'labels',
                 subset = "validation",
@@ -152,7 +159,7 @@ model.compile(optimizer='adadelta', loss='categorical_crossentropy',
 history = model.fit_generator(training_data,
                     steps_per_epoch=1000,
                     epochs=5,
-                    validation_data=testing_data,
+                    validation_data=validation_data,
                     validation_steps=500)
 
 keys = history.history.keys
@@ -173,8 +180,5 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.show(block=True)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     rd
-    rd.build_dirs()
-    rd.get_patches()
-    rd.read_patch()
