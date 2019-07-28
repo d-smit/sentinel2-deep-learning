@@ -12,12 +12,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # from keras.applications.xception import Xception
+# from sklearn.preprocessing import MultiLabelBinarizer
 from keras_preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import BatchNormalization
-# from keras.optimizers import SGD
+from keras import optimizers
+from keras.optimizers import SGD
 from PIL import Image
 import tensorflow as tf
 from keras.backend import tensorflow_backend
@@ -32,7 +34,7 @@ print('Imports done')
 
 root_path = os.getcwd()
 
-Server = True
+Server = False
 
 if Server:
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
@@ -60,66 +62,36 @@ patches, split_point = rd.get_patches(patches)
 print('patch count: {}'.format(len(patches)))
 print('split point: {}'.format(split_point))
 
-class_count, df = rd.read_patch(split_point)
+df, class_count = rd.read_patch(split_point)
 
-# print('df : {}'.format(df.head()))
-# print(set(df['labels']))
+# print('class list: {}'.format(classes))
+# print('class count: {}'.format(class_present))
+
+print('df : {}'.format(df.head()))
 
 print(set(df['path'].apply(lambda x: os.path.exists(x))))
-
-df['path'].apply(lambda x: Image.open(x))
-# mask = np.column_stack([df['labels'].str.contains(r"'Pastures', 'Broad-leaved forest'", na=False)])
-# df2 = df.loc[mask.any(axis=1)]
-# print(df2)
-
-num_classes = len(names.values())
 
 en = time.time()
 t = en - st
 print('Images ready in: {} minutes'.format(int(t/60)))
 
 model = Sequential()
-model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(120,120,3)))
-model.add(BatchNormalization())
-# model.add(Conv2D(32, (3, 3), activation='relu', input_shape=input_shape))
+model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(120, 120, 3)))
+model.add(Conv2D(32, (3, 3), activation='relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 model.add(Conv2D(64, (3, 3), activation='relu'))
-model.add(BatchNormalization())
+model.add(Conv2D(64, (3, 3), activation='relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.25))
 model.add(Flatten())
+model.add(Dense(256, activation='relu'))
 model.add(Dropout(0.5))
-model.add(Dense(num_classes, activation='softmax'))
-
-# ConvNet
-# model = Sequential()
-# model.add(Conv2D(32, (3, 3), activation='relu', input_shape=(256, 256, 3)))
-# model.add(Conv2D(32, (3, 3), activation='relu'))
-# model.add(MaxPooling2D(pool_size=(2, 2)))
-# model.add(Dropout(0.25))
-# model.add(Conv2D(64, (3, 3), activation='relu'))
-# model.add(Conv2D(64, (3, 3), activation='relu'))
-# model.add(MaxPooling2D(pool_size=(2, 2)))
-# model.add(Dropout(0.25))
-# model.add(Flatten())
-# model.add(Dense(256, activation='relu'))
-# model.add(Dropout(0.5))
-# model.add(Dense(num_classes, activation='softmax'))
-
-# Xception
-# base_model = Xception(input_shape=(256, 256, 3), weights=None)
-# separate model for giving the class predictions
-# top_model = base_model.output
-# need pooling in between top and base models?
-# preds = Dense(num_classes, activation='softmax')(top_model)
-# #compile into single model object with Model class
-# model = Model(inputs=base_model.input, outputs=preds)
+model.add(Dense(class_count, activation='sigmoid'))
 
 print('Normalizing images...')
-
-# data_gen = ImageDataGenerator(rescale=1.0/255.0, validation_split=0.3)
-data_gen = ImageDataGenerator(validation_split=0.3)
+data_gen = ImageDataGenerator(rescale=1.0/255.0, validation_split=0.3)
+# data_gen = ImageDataGenerator(validation_split=0.3)
 
 print('Flowing training set...')
 
@@ -132,7 +104,6 @@ training_data = data_gen.flow_from_dataframe(
                 subset = "training",
                 seed = 1,
                 target_size = (120,120),
-                classes = names.values(),
                 class_mode = 'categorical',
                 batch_size = 64,
                 shuffle = True)
@@ -146,21 +117,25 @@ validation_data = data_gen.flow_from_dataframe(
                 subset = "validation",
                 seed = 1,
                 target_size = (120,120),
-                classes = names.values(),
                 class_mode = 'categorical',
                 batch_size = 64,
                 shuffle = True)
 
+print('Training indices: {}'.format(training_data.class_indices))
+print('Validation indices: {}'.format(validation_data.class_indices))
+
 print('Training network...')
 
-model.compile(optimizer='adadelta', loss='categorical_crossentropy',
+sgd = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+
+model.compile(optimizer=sgd, loss='binary_crossentropy',
               metrics=['categorical_accuracy'])
 
 history = model.fit_generator(training_data,
-                    steps_per_epoch=1000,
-                    epochs=5,
+                    steps_per_epoch=2000,
+                    epochs=40,
                     validation_data=validation_data,
-                    validation_steps=500)
+                    validation_steps=1000)
 
 keys = history.history.keys
 
