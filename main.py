@@ -9,7 +9,10 @@ import os
 import time
 import json
 import numpy as np
+from itertools import chain
+import collections
 import matplotlib.pyplot as plt
+import seaborn
 
 # from keras.applications.xception import Xception
 # from sklearn.preprocessing import MultiLabelBinarizer
@@ -35,23 +38,19 @@ print('Imports done')
 root_path = os.getcwd()
 
 Server = False
+# Server = True
 
 if Server:
+    path_to_images = root_path + '/DATA/bigearth/dump/sample/'
+
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
         names = json.load(jf)
 
-    path_to_images = root_path + '/DATA/bigearth/sample/'
-    path_to_merge = root_path + '/DATA/bigearth/merge/'
-
-    print('image store: {}'.format(path_to_images))
-    print('merged to use: {}'.format(path_to_merge))
-
 else:
+    path_to_images = root_path + '/data/sample/'
+
     with open('data/corine_labels.json') as jf:
         names = json.load(jf)
-
-    path_to_images = root_path + '/data/sample/'
-    path_to_merge = root_path + '/data/merge/'
 
 st = time.time()
 
@@ -60,10 +59,19 @@ patches = [patches for patches in os.listdir(path_to_images)]
 patches, split_point = rd.get_patches(patches)
 
 print('patch count: {}'.format(len(patches)))
-print('split point: {}'.format(split_point))
+# print('split point: {}'.format(split_point))
 
+split_point=3751
 df, class_count = rd.read_patch(split_point)
 
+class_rep = list(chain.from_iterable(df['labels']))
+counter=collections.Counter(class_rep)
+print('class dist: {}'.format(counter))
+plt.bar(range(len(counter)), list(counter.values()), align='center')
+# plt.xticks(range(len(counter)), list(counter.keys()))
+plt.title('Training classes')
+plt.ion()
+plt.show()
 # print('class list: {}'.format(classes))
 # print('class count: {}'.format(class_present))
 
@@ -108,6 +116,20 @@ training_data = data_gen.flow_from_dataframe(
                 batch_size = 64,
                 shuffle = True)
 
+train_cls = training_data.class_indices
+train_rep = training_data.classes
+train_rep = list(chain.from_iterable(train_rep))
+counter=collections.Counter(train_rep)
+
+print('Training indices: {}'.format(train_cls))
+print('training class count: {}'.format(counter))
+
+plt.bar(range(len(counter)), list(counter.values()), align='center')
+plt.xticks(range(len(counter)), list(counter.keys()))
+plt.title('Training classes')
+plt.ion()
+plt.show()
+
 print('Flowing validation set...')
 
 validation_data = data_gen.flow_from_dataframe(
@@ -121,8 +143,19 @@ validation_data = data_gen.flow_from_dataframe(
                 batch_size = 64,
                 shuffle = True)
 
-print('Training indices: {}'.format(training_data.class_indices))
+valid_cls = validation_data.class_indices
+valid_rep = validation_data.classes
+valid_rep = list(chain.from_iterable(valid_rep))
+counter=collections.Counter(valid_rep)
+
 print('Validation indices: {}'.format(validation_data.class_indices))
+print('valid class count: {}'.format(counter))
+
+plt.bar(range(len(counter)), list(counter.values()), align='center')
+plt.xticks(range(len(counter)), list(counter.keys()))
+plt.title('Validation classes')
+plt.ion()
+plt.show()
 
 print('Training network...')
 
@@ -132,12 +165,12 @@ model.compile(optimizer=sgd, loss='binary_crossentropy',
               metrics=['categorical_accuracy'])
 
 history = model.fit_generator(training_data,
-                    steps_per_epoch=2000,
-                    epochs=40,
+                    steps_per_epoch=1200,
+                    epochs=10,
                     validation_data=validation_data,
-                    validation_steps=1000)
+                    validation_steps=800)
 
-keys = history.history.keys
+# keys = history.history.keys
 
 plt.plot(history.history['categorical_accuracy'])
 plt.plot(history.history['val_categorical_accuracy'])
@@ -155,5 +188,5 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.show(block=True)
 
-if __name__ == '__main__':
-    rd
+# if __name__ == '__main__':
+#     rd
