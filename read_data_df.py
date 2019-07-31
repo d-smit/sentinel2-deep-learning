@@ -25,7 +25,7 @@ st = time.time()
 root_path = os.getcwd()
 
 Server = False
-# Server = True
+Server = True
 
 if Server:
     path_to_images = root_path + '/DATA/bigearth/dump/sample/'
@@ -115,42 +115,174 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
     d = {'path': path_col, 'labels': label_col}
     df = pd.DataFrame(d)
+    df1 = df
 
+    st1 = time.time ()
+
+    ldict = {
+        1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
+        2: [str(i) for i in range(12,23)],            # Agriculture: 12 - 22
+        3: [str(i) for i in range(23,30)],            # Forest and vegetation: 23 - 30
+        4: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
+        5: [str(i) for i in range(35,45)]             # Water: 35 - 44
+    }
+
+    names2 = {v: k for k, v in names.items()}
+    
+    med_col = []
+    for entry in df.labels.values:
+        entry = [names2[k] for k in entry]
+        med_col.append((entry))
+    
+    df['l2'] = pd.Series(data=med_col)
+
+    ent_df = []
+    for entry in df.l2.values:
+        new_entry = []
+        for elem in entry:
+            for k,v in ldict.items():
+                for val in v:
+                    if elem == val:
+                        elem = k
+            new_entry.append(elem)
+        ent_df.append(list(set(new_entry)))
+
+
+    df['labels'] = ent_df
+    df = df.drop(['l2'], axis=1)
+
+    en1 = time.time()
+
+    print('Class groups formed in: {} seconds'.format(en1-st1))
 
     lst = df['labels'].values
     classes = list(itertools.chain.from_iterable(lst))
     en = time.time()
     print('merged bands in {} sec'.format(float(en-st)))
 
+    from sklearn.preprocessing import MultiLabelBinarizer
+
+    print('One hot encoding...')
+
+    mlb = MultiLabelBinarizer()
+    df = df.join(pd.DataFrame(mlb.fit_transform(df['labels']),
+                          columns=mlb.classes_,
+                          index=df.index))
+
+    print('Dataframe ready')
+
     return df, len(set(classes))
 
-split_point = 299
-df, class_count = read_patch(split_point)
-# cldict = {
-#         1: [names[x] for x in [str(i) for i in range(1,12)]],                   # Artificial surfaces: 1 - 11
-#         2: [names[x] for x in [str(i) for i in range(12,23)]],                  # Agriculture: 12 - 22
-#         3: [names[x] for x in [str(i) for i in range(23,26)]],                    # Forest: 23, 24, 25
-#         4: [names[x] for x in [str(i) for i in range(26,30)]],                # Vegetation: 26-29
-#         5: [names[x] for x in [str(i) for i in range(30,35)]],            # Open space with little veg: 30-34
-#         6: [names[x] for x in [str(i) for i in range(35,45)]]               # Water: 35 - 44
+# split_point = 299
+# df, class_count = read_patch(split_point)
+
+
+
+    # ldict = {
+    #     1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
+    #     2: [str(i) for i in range(12,23)],            # Agriculture: 12 - 22
+    #     3: [str(i) for i in range(23,26)],            # Forest: 23, 24, 25
+    #     4: [str(i) for i in range(26,30)],            # Vegetation: 26-29
+    #     5: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
+    #     6: [str(i) for i in range(35,45)]             # Water: 35 - 44
+    # }
+
+# split_point = 299
+# print(class_count)
+# # cldict = {
+# #         1: [names[x] for x in [str(i) for i in range(1,12)]],                   # Artificial surfaces: 1 - 11
+# #         2: [names[x] for x in [str(i) for i in range(12,23)]],                  # Agriculture: 12 - 22
+# #         3: [names[x] for x in [str(i) for i in range(23,26)]],                    # Forest: 23, 24, 25
+# #         4: [names[x] for x in [str(i) for i in range(26,30)]],                # Vegetation: 26-29
+# #         5: [names[x] for x in [str(i) for i in range(30,35)]],            # Open space with little veg: 30-34
+# #         6: [names[x] for x in [str(i) for i in range(35,45)]]               # Water: 35 - 44
+# #     }
+
+# ldict = {
+#         1: [str(i) for i in range(1,12)],                   # Artificial surfaces: 1 - 11
+#         2: [str(i) for i in range(12,23)],                  # Agriculture: 12 - 22
+#         3: [str(i) for i in range(23,26)],                    # Forest: 23, 24, 25
+#         4: [str(i) for i in range(26,30)],                # Vegetation: 26-29
+#         5: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
+#         6: [str(i) for i in range(35,45)]               # Water: 35 - 44
 #     }
 
-ldict = {
-        1: [i for i in range(1,12)],                   # Artificial surfaces: 1 - 11
-        2: [i for i in range(12,23)],                  # Agriculture: 12 - 22
-        3: [i for i in range(23,26)],                    # Forest: 23, 24, 25
-        4: [i for i in range(26,30)],                # Vegetation: 26-29
-        5: [i for i in range(30,35)],            # Open space with little veg: 30-34
-        6: [i for i in range(35,45)]               # Water: 35 - 44
-    }
+# #
 
-# # Need to convert df.labels to names.key instead of names.value
+# names2 = {v: k for k, v in names.items()}
 
 
-names2 = {v: k for k, v in names.items()}
+# med_col = []
+# for entry in df.labels.values:
+#     entry = [names2[k] for k in entry]
+#     med_col.append((entry))
+
+# df['l2'] = pd.Series(data=med_col)
 
 
-# df["labels"] = df["labels"].apply(lambda x: str(x).strip('[]'))
+# ent_df = []
+# for entry in df.l2.values:
+#     new_entry = []
+#     for elem in entry:
+#         for k,v in ldict.items():
+#             for val in v:
+#                 if elem == val:
+#                     elem = k
+#         new_entry.append(elem)
+#     ent_df.append(new_entry)
+
+# df['l3'] = ent_df
+# df = df.drop(['labels'], axis=1)
+# df = df.drop(['l2'], axis=1)
+# df['labels'] = df['l3']
+# df = df.drop(['l3'], axis=1)
+# df.head()
+
+
+# d=map(names2.get, df.labels.values)
+
+# def aggregate_values(series, agg_dict):
+#     """
+#     Combine multiple classes into a single class.
+#     Series object. If doing CV, you need to match indices.
+#     """
+#     lower_col = pd.Series(data=np.zeros(series.shape))
+#     for k, v in agg_dict.items():
+#         lower_col[series.isin(v)] = k
+
+#     return lower_col
+
+# aggregate_values(df.l3, ldict)
+
+# lower_col = pd.Series(data=np.empty(df.labels.shape))
+
+# df.l3 = df.l3.apply(lambda x: int(x).split('[]'))
+
+
+
+
+
+# el = []
+# for elem in df.l3.values:
+#     elem.astype(int)
+#     el.append(elem)
+# el.append(eleml)
+
+# for i in range(0, len(df.l3.values) - 1):
+#     ent = df['l3'].iloc[i].astype(int)
+
+    # # Need to convert df.labels to names.key instead of names.value
+
+# ldict2 = {
+#         1: [1,2,3],
+#         2: [5]}
+# for k in names2:
+#     names2[k] = int(names2[k])
+
+# df.l2 = df.l2.map(names2)
+
+# df["l3"] = df["l2"].apply(lambda x: str(x).strip('[]'))
+
 # df['labels'] = df['labels'].map(pd.Series(names2))
 # df.labels
 # df['labels'].replace(names2)
@@ -159,34 +291,6 @@ names2 = {v: k for k, v in names.items()}
 # df.replace({'labels': names2})
 
 # df['labels'].put(names2.keys(), names2.values())
-med_col = pd.Series(data=np.empty(df.labels.shape))
-med_col = []
-for entry in df.labels.values:
-    entry = [names2[k] for k in entry]
-    med_col.append(entry)
-
-df['labels2'] = pd.Series(data=med_col)
-
-# d=map(names2.get, df.labels.values)
-
-def aggregate_values(series, agg_dict):
-    """
-    Combine multiple classes into a single class.
-    Series object. If doing CV, you need to match indices.
-    """
-    lower_col = pd.Series(data=np.empty(series.shape))
-
-    for k, v in agg_dict.items():
-        lower_col[series.isin(v)] = k
-
-    return lower_col
-
-aggregate_values(df['labels2'], ldict)
-
-lower_col = pd.Series(data=np.empty(df.labels.shape))
-
-
-med_col.isin('1')
 
 # for item in df.labels.values:
 #     for cl in item:
