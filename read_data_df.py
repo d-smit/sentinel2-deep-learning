@@ -17,15 +17,15 @@ import json
 import scipy.misc
 import itertools
 
-import timeit
+from PIL import Image
 
-# from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer
 
 st = time.time()
 root_path = os.getcwd()
 
 Server = False
-Server = True
+# Server = True
 
 if Server:
     path_to_images = root_path + '/DATA/bigearth/dump/sample/'
@@ -69,6 +69,7 @@ def get_patches(patches):
 
     return patches, split_point
 
+# patches, split_point = get_patches(patches)
 
 def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
@@ -107,10 +108,9 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
         files2rio = list(map(rio.open, band_tifs))
         data = pl.stack(list(map(lambda x: x.read(1).astype(pl.int16), files2rio)))
         data = np.moveaxis(data, 0, 2)
+        scipy.misc.toimage(data[...]).save(path_to_merge + patches[i] + '.png')
 
-        scipy.misc.toimage(data[...]).save(path_to_merge + patches[i] + '.jpg')
-
-        path_col.append(path_to_merge + patches[i] + '.jpg')
+        path_col.append(path_to_merge + patches[i] + '.png')
         label_col.append(labels)
 
     d = {'path': path_col, 'labels': label_col}
@@ -147,7 +147,6 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
             new_entry.append(elem)
         ent_df.append(list(set(new_entry)))
 
-
     df['labels'] = ent_df
     df = df.drop(['l2'], axis=1)
 
@@ -159,8 +158,6 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
     classes = list(itertools.chain.from_iterable(lst))
     en = time.time()
     print('merged bands in {} sec'.format(float(en-st)))
-
-    from sklearn.preprocessing import MultiLabelBinarizer
 
     print('One hot encoding...')
 
