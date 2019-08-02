@@ -17,8 +17,7 @@ import matplotlib.pyplot as plt
 import seaborn
 from sklearn.utils import class_weight
 
-# from keras.applications.xception import Xception
-# from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import train_test_split, KFold
 from keras_preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
@@ -28,7 +27,6 @@ from keras.layers import BatchNormalization, Activation
 from keras import optimizers
 from keras.optimizers import SGD
 from PIL import Image
-# import cv2
 import tensorflow as tf
 from keras.backend import tensorflow_backend
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
@@ -36,8 +34,6 @@ from sklearn.metrics import classification_report, confusion_matrix
 config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True))
 session = tf.Session(config=config)
 tensorflow_backend.set_session(session)
-
-import cv2
 
 import read_data_df as rd
 
@@ -52,7 +48,7 @@ cv = False
 cv = True
 
 if Server:
-    path_to_images = root_path + '/DATA/bigearth/dump/sample/'
+    path_to_images = root_path + '/DATA/bigearth/sample/'
     path_to_model = root_path + '/DATA/bigearth/model/'
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
         names = json.load(jf)
@@ -69,10 +65,11 @@ st = time.time()
 patches = [patches for patches in os.listdir(path_to_images)]
 patches, split_point = rd.get_patches(patches)
 print('patch count: {}'.format(len(patches)))
-# print('split point: {}'.format(split_point))
+print('split point: {}'.format(split_point))
 
 # split_point=3751
-df, class_count = rd.read_patch(split_point)
+df, class_count = rd.read_patch()
+
 X = df.path
 y = df.labels
 train, test = train_test_split(df, test_size=0.2)
@@ -90,7 +87,9 @@ if cv:
     folds, X_train, y_train = fold_df(df, k)
 
 class_rep = list(chain.from_iterable(df['labels']))
+
 counter=collections.Counter(class_rep)
+
 print('class dist: {}'.format(counter))
 # plt.bar(range(len(counter)), list(counter.values()), align='center')
 # plt.xticks(range(len(counter)), list(counter.keys()))
@@ -100,7 +99,7 @@ print('class dist: {}'.format(counter))
 
 print('class count: {}'.format(class_count))
 
-print('df : {}'.format(df.head()))
+# print('df : {}'.format(df.head()))
 print(set(df['path'].apply(lambda x: os.path.exists(x))))
 
 en = time.time()
@@ -113,24 +112,26 @@ def build_model():
     model.add(Conv2D(32, (3, 3), input_shape=(120, 120, 3)))
     model.add(BatchNormalization())
     model.add(Activation("relu"))
+    model.add(Dropout(0.25))
     model.add(Conv2D(32, (3, 3)))
     model.add(BatchNormalization())
     model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    model.add(Dropout(0.5))
     model.add(Conv2D(64, (3, 3)))
     model.add(BatchNormalization())
     model.add(Activation("relu"))
+    model.add(Dropout(0.5))
     model.add(Conv2D(64, (3, 3)))
     model.add(BatchNormalization())
     model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.25))
+    model.add(Dropout(0.75))
     model.add(Flatten())
     model.add(Dense(256))
     model.add(BatchNormalization())
     model.add(Activation("relu"))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.2))
     model.add(Dense(class_count, activation='sigmoid'))
 
     return model
@@ -151,7 +152,7 @@ reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                               min_lr=0.0001)
 
 earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
-                             patience=50,
+                             patience=5,
                              mode='max')
 
 
@@ -169,27 +170,11 @@ def preprocessing(x):
 
     return x
 
-''' 
-Server 15k sample dataset:
-    
-Training indices: {1: 0, 2: 1, 3: 2, 4: 3, 5: 4}
-training class count: Counter({2: 52888, 1: 43221, 4: 20357, 0: 11289, 3: 650})
-Validation indices: {1: 0, 2: 1, 3: 2, 4: 3, 5: 4}
-valid class count: Counter({2: 22756, 1: 18552, 4: 8755, 0: 4790, 3: 260})
-Class weights calculated below:
-    [ 2.12513238  0.63897122  0.50568964 27.6042328   1.05185484] 
-'''
-
-if Server:
-    classes = [i for i in range(1,6)]
-else:
-    classes = [i for i in range(1,6) if i != 4]   # For local sample dataset
-
 raw_labels = df.labels.values.tolist()
 raw_labels = [l for sub_l in raw_labels for l in sub_l]
 
 class_weightings = class_weight.compute_class_weight('balanced',
-                                                      classes,
+                                                      list(counter),
                                                       raw_labels)
 
 print('Class weights {}'.format(class_weightings))
@@ -201,8 +186,6 @@ gen = ImageDataGenerator(validation_split=0.2)
 if cv:
     for j, (train_idx, val_idx) in enumerate(folds):
 
-        # print(train_idx)
-        # print(val_idx)
         print('\nFold ',j)
 
         X_train_cv = X_train[train_idx]
@@ -250,16 +233,41 @@ if cv:
 
         # print(model.evaluate(X_valid_cv, y_valid_cv))
 
-        test_arrays = np.empty(len(X_valid_cv))
+        # test_arrays = np.empty(len(X_valid_cv))
+
+        corines = list(counter.keys())
+
         predictions = []
-        for i in X_valid_cv.values:
+
+        for i in test.path.values:
             img_ar = Image.open(i)
             img_ar = np.expand_dims(img_ar, axis=0)
             pred = model.predict(img_ar)
-            pred = pred.argsort()[-2:][::-1]
-            predictions.append(pred)
-        # print(predictions)
-        cf = confusion_matrix(test.iloc[:, 2:].values, predictions)
+            # pred = [l for l in pred]
+            # pred = np.argmax(pred, axis=1)
+            pred_abs = (pred > 0.5).astype(np.int)
+            pred_abs = pred_abs.tolist()
+            pred_abs = list(chain.from_iterable(pred_abs))
+
+            for i in (range(0, len(pred_abs))):
+                if pred_abs[i]:
+                    pred_abs[i]=corines[i]
+            pred_abs = list(filter((0).__ne__, pred_abs))
+            predictions.append(pred_abs)
+
+        predictions
+
+
+
+        preds = [l.tolist() for sl in predictions for l in sl]
+
+        actuals = [l for l in test.labels.values]# for l in sl]
+        # actuals = MultiLabelBinarizer().fit_transform(actuals)
+
+        cf = confusion_matrix(test.iloc[:, 2:], np.array(preds))
+
+        cf = confusion_matrix(actuals, predictions)
+
         print(cf)
 else:
 
@@ -315,10 +323,10 @@ else:
                                mode='max')
 
     history = model.fit_generator(training_data,
-                                    steps_per_epoch = 1,
-                                    epochs = 1,
+                                    steps_per_epoch = 2000,
+                                    epochs = 50,
                                     validation_data = validation_data,
-                                    validation_steps = 1,
+                                    validation_steps = 1000,
                                     callbacks=[reduce_lr, earlystopper],
                                     class_weight = class_weightings)
 
@@ -338,6 +346,11 @@ else:
     # targs = ['Artificial', 'Agriculture', 'Forest & Vegetation', 'Bare space', 'Water']
     # print(classification_report(valid_rep, y_pred, target_names=targs))
 
+if Server:
+    plot_spot = root_path + '/DATA/bigearth/output/acc'
+
+else:
+    plot_spot = root_path + '/data/output/acc'
 
 plt.plot(history.history['categorical_accuracy'])
 plt.plot(history.history['val_categorical_accuracy'])
@@ -345,20 +358,22 @@ plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='lower right')
-plt.savefig('/home/strathclyde/DATA/bigearth/output/acc_15_10_0.1.jpg')
+plt.savefig(plot_spot)
 # plt.show(block=True)
 
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper right')
-plt.savefig('/home/strathclyde/DATA/bigearth/output/loss_15_10_0.1.jpg')
-# plt.show(block=True)
+# plt.plot(history.history['loss'])
+# plt.plot(history.history['val_loss'])
+# plt.title('model loss')
+# plt.ylabel('loss')
+# plt.xlabel('epoch')
+# plt.legend(['train', 'test'], loc='upper right')
+# plt.savefig('/home/strathclyde/DATA/bigearth/output/loss_15_10_0.1.jpg')
+# # plt.show(block=True)
 
 # if __name__ == '__main__':
 #     rd
+
+            # pred = pred.argsort()[-3:][::-1]
 
 # df['l2'] = df['labels'].apply(lambda x: str(x).strip('[]'))
 
@@ -367,3 +382,14 @@ plt.savefig('/home/strathclyde/DATA/bigearth/output/loss_15_10_0.1.jpg')
 # plt.title('Training classes')
 # plt.ion()
 # plt.show()
+
+# srv_dic = {'25': 5667, '12': 4636, '23': 3807, '18': 2627, '41': 2374, '2': 1710, '1': 470, '3': 281, '11': 112, '4': 82, '10': 33, '6': 26}
+# srv_dic= {'25': 5667, '12': 4636, '23': 3807, '18': 2627, '41': 2374, '2': 1710, '1': 470, '3': 281, '11': 112, '4': 82, '10': 33, '6': 26}
+
+# if Server:
+#     classes = [k for k in srv_dic]
+# else:
+#     classes = ['10', '12', '2', '23', '25', '3', '41']
+
+    #classes = [i for i in range(1,6) if i != 4]
+    # classes = set(df.labels.values.tolist())# For local sample dataset

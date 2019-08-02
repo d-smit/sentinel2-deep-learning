@@ -16,6 +16,7 @@ import random
 import json
 import scipy.misc
 import itertools
+from tqdm import tqdm
 
 from PIL import Image
 
@@ -28,7 +29,7 @@ Server = False
 # Server = True
 
 if Server:
-    path_to_images = root_path + '/DATA/bigearth/dump/sample/'
+    path_to_images = root_path + '/DATA/bigearth/sample/'
     path_to_merge = root_path + '/DATA/bigearth/merge2/'
 
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
@@ -40,6 +41,10 @@ else:
     
     with open('data/corine_labels.json') as jf:
         names = json.load(jf)
+
+gsi_labels = [1, 2, 3, 11, 12, 18, 23, 25, 41]
+
+gsi_classes = [v for k,v in names.items() for lbl in gsi_labels if names[str(lbl)]==names[k]]
 
 patches = [patches for patches in os.listdir(path_to_images)]
 
@@ -71,7 +76,7 @@ def get_patches(patches):
 
 # patches, split_point = get_patches(patches)
 
-def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
+def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
     ''' Returns a NumPy array for each patch,
     consisting of the four bands'''
@@ -88,13 +93,10 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
     path_col = []
     label_col = []
 
-    for i in range(0, len(patches) - 1):
-
-        tifs = glob(path_to_images + '{}/*.tif'.format(patches[i]), recursive=True)
-        band_tifs = [tif for tif in tifs for band in bands if band in tif]
+    for i in tqdm(range(0, len(patches) - 1)):
 
         if Server:
-            with open('/home/strathclyde/DATA/bigearth/dump/sample/{}/{}_labels_metadata.json' \
+            with open('/home/strathclyde/DATA/bigearth/sample/{}/{}_labels_metadata.json' \
                       .format(patches[i], patches[i])) as js:
                 meta = json.load(js)
         else:
@@ -103,6 +105,17 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
                 meta = json.load(js)
 
         labels = meta.get('labels')
+
+        labels = [i for i in labels if i in gsi_classes]
+        print(labels)
+
+        if labels == []:
+            continue
+        else:
+            pass
+
+        tifs = glob(path_to_images + '{}/*.tif'.format(patches[i]), recursive=True)
+        band_tifs = [tif for tif in tifs for band in bands if band in tif]
 
         band_tifs.sort()
         files2rio = list(map(rio.open, band_tifs))
@@ -115,40 +128,39 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
     d = {'path': path_col, 'labels': label_col}
     df = pd.DataFrame(d)
-    df1 = df
 
     st1 = time.time ()
 
-    ldict = {
-        1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
-        2: [str(i) for i in range(12,23)],            # Agriculture: 12 - 22
-        3: [str(i) for i in range(23,30)],            # Forest and vegetation: 23 - 30
-        4: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
-        5: [str(i) for i in range(35,45)]             # Water: 35 - 44
-    }
+    # ldict = {
+    #     1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
+    #     2: [str(i) for i in range(12,23)],            # Agriculture: 12 - 22
+    #     3: [str(i) for i in range(23,30)],            # Forest and vegetation: 23 - 30
+    #     4: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
+    #     5: [str(i) for i in range(35,45)]             # Water: 35 - 44
+    # }
 
-    names2 = {v: k for k, v in names.items()}
-    
+    names2 = {v: int(k) for k, v in names.items()}
+
     med_col = []
     for entry in df.labels.values:
         entry = [names2[k] for k in entry]
         med_col.append((entry))
     
-    df['l2'] = pd.Series(data=med_col)
+    df['labels'] = pd.Series(data=med_col)
 
-    ent_df = []
-    for entry in df.l2.values:
-        new_entry = []
-        for elem in entry:
-            for k,v in ldict.items():
-                for val in v:
-                    if elem == val:
-                        elem = k
-            new_entry.append(elem)
-        ent_df.append(list(set(new_entry)))
+    # ent_df = []
+    # for entry in df.l2.values:
+    #     new_entry = []
+    #     for elem in entry:
+    #         for k,v in ldict.items():
+    #             for val in v:
+    #                 if elem == val:
+    #                     elem = k
+    #         new_entry.append(elem)
+    #     ent_df.append(list(set(new_entry)))
 
-    df['labels'] = ent_df
-    df = df.drop(['l2'], axis=1)
+    # df['labels'] = ent_df
+    # df = df.drop(['l2'], axis=1)
 
     en1 = time.time()
 
@@ -157,7 +169,10 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
     lst = df['labels'].values
     classes = list(itertools.chain.from_iterable(lst))
     en = time.time()
+
     print('merged bands in {} sec'.format(float(en-st)))
+
+    # df = df[df['labels'].map(lambda d: len(d)) > 0]
 
     print('One hot encoding...')
 
@@ -171,8 +186,7 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
     return df, len(set(classes))
 
 # split_point = 299
-# df, class_count = read_patch(split_point)
-
+df, class_count = read_patch()
 
 
     # ldict = {
@@ -254,10 +268,6 @@ def read_patch(split_point, bands = ['B02', 'B03', 'B04'], nodata=-9999):
 # lower_col = pd.Series(data=np.empty(df.labels.shape))
 
 # df.l3 = df.l3.apply(lambda x: int(x).split('[]'))
-
-
-
-
 
 # el = []
 # for elem in df.l3.values:
