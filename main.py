@@ -21,7 +21,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import train_test_split, KFold
 from keras_preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Dense, Dropout, Flatten, GlobalAveragePooling2D
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import BatchNormalization, Activation
 from keras import optimizers
@@ -35,6 +35,9 @@ config = tf.ConfigProto(gpu_options=tf.GPUOptions(allow_growth=True))
 session = tf.Session(config=config)
 tensorflow_backend.set_session(session)
 
+from keras.applications.densenet import DenseNet201 as DenseNet
+from keras.models import Model
+
 import read_data_df as rd
 
 print('Imports done')
@@ -42,10 +45,10 @@ print('Imports done')
 root_path = os.getcwd()
 
 Server = False
-# Server = True
+Server = True
 
 cv = False
-cv = True
+# cv = True
 
 if Server:
     path_to_images = root_path + '/DATA/bigearth/sample/'
@@ -108,31 +111,50 @@ print('Images ready in: {} minutes'.format(int(t/60)))
 
 def build_model():
 
-    model = Sequential()
-    model.add(Conv2D(32, (3, 3), input_shape=(120, 120, 3)))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(Dropout(0.25))
-    model.add(Conv2D(32, (3, 3)))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3, 3)))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3, 3)))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.75))
-    model.add(Flatten())
-    model.add(Dense(256))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(Dropout(0.2))
-    model.add(Dense(class_count, activation='sigmoid'))
+    # model = Sequential()
+    # model.add(Conv2D(32, (3, 3), input_shape=(120, 120, 3)))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(Dropout(0.25))
+    # model.add(Conv2D(32, (3, 3)))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(MaxPooling2D(pool_size=(2, 2)))
+    # model.add(Dropout(0.5))
+    # model.add(Conv2D(64, (3, 3)))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(Dropout(0.5))
+    # model.add(Conv2D(64, (3, 3)))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(MaxPooling2D(pool_size=(2, 2)))
+    # model.add(Dropout(0.75))
+    # model.add(Flatten())
+    # model.add(Dense(256))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(Dropout(0.2))
+    # model.add(Dense(class_count, activation='sigmoid'))
+
+    base_model = DenseNet(include_top=False,
+                      weights='imagenet',
+                      input_shape=(120, 120, 3))
+
+    print(base_model.layers)
+
+    for layer in base_model.layers[:7]:
+        layer.trainable = False
+    for layer in base_model.layers[7:]:
+        layer.trainable = True
+
+    top_model = base_model.output
+    top_model = GlobalAveragePooling2D()(top_model)
+    predictions = (Dense(class_count, activation='sigmoid'))(top_model)
+
+    model = Model(inputs=base_model.input, outputs=predictions)
+
+    model.summary()
 
     return model
 
@@ -148,7 +170,7 @@ model.compile(optimizer=sgd, loss='binary_crossentropy',
 reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                               factor=0.2,
                               cooldown=1,
-                              patience=5,
+                              patience=3,
                               min_lr=0.0001)
 
 earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
@@ -181,7 +203,8 @@ print('Class weights {}'.format(class_weightings))
 
 # preprocessing_function=preprocessing,
 
-gen = ImageDataGenerator(validation_split=0.2)
+gen = ImageDataGenerator(rescale = 1./255,
+                         validation_split=0.2)
 
 if cv:
     for j, (train_idx, val_idx) in enumerate(folds):
@@ -324,7 +347,7 @@ else:
 
     history = model.fit_generator(training_data,
                                     steps_per_epoch = 2000,
-                                    epochs = 50,
+                                    epochs = 10,
                                     validation_data = validation_data,
                                     validation_steps = 1000,
                                     callbacks=[reduce_lr, earlystopper],
@@ -361,14 +384,14 @@ plt.legend(['train', 'test'], loc='lower right')
 plt.savefig(plot_spot)
 # plt.show(block=True)
 
-# plt.plot(history.history['loss'])
-# plt.plot(history.history['val_loss'])
-# plt.title('model loss')
-# plt.ylabel('loss')
-# plt.xlabel('epoch')
-# plt.legend(['train', 'test'], loc='upper right')
-# plt.savefig('/home/strathclyde/DATA/bigearth/output/loss_15_10_0.1.jpg')
-# # plt.show(block=True)
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper right')
+plt.savefig('/home/strathclyde/DATA/bigearth/output/loss_15_10_0.1.jpg')
+# plt.show(block=True)
 
 # if __name__ == '__main__':
 #     rd

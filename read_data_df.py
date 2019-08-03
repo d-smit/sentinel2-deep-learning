@@ -26,7 +26,7 @@ st = time.time()
 root_path = os.getcwd()
 
 Server = False
-# Server = True
+Server = True
 
 if Server:
     path_to_images = root_path + '/DATA/bigearth/sample/'
@@ -51,25 +51,21 @@ patches = [patches for patches in os.listdir(path_to_images)]
 def get_patches(patches):
 
     st = time.time()
-
     valid_split = 0.3
     print('Unprocessed patch count: {}'.format(len(patches)))
-
     dst = '/DATA' if Server == True else '/data'
-    
     cloud_patches = pd.read_csv(root_path + '{}/patches_with_cloud_and_shadow.csv'.format(dst), 'r', header=None)
     snow_patches = pd.read_csv(root_path + '{}/patches_with_seasonal_snow.csv'.format(dst), 'r', header=None)
-    bad_patches = pd.concat([cloud_patches, snow_patches], axis=1)
 
     print('Purging cloud, shadow and snow patches...')
-    patches = [patch for patch in patches if not patch in bad_patches.values]
+
+    patch_set = set(cloud_patches[0]).union(set(snow_patches[0]))
+    patches = set(patches)
+    patches = list(patches - patch_set)
 
     print('{} clean patches...'.format(len(patches)))
-
     split_point = int(len(patches) * valid_split)
-
     en = time.time()
-
     print('Purge took: {} secs '.format(float(en-st)))
 
     return patches, split_point
@@ -83,7 +79,6 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
     st = time.time()
     print('Shuffling patches...')
     random.shuffle(patches)
-
     cols = ['path', 'labels']
     index = range(0, len(patches) - 1)
     df = pd.DataFrame(index=index, columns=cols, dtype=object)
@@ -94,7 +89,6 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
     label_col = []
 
     for i in tqdm(range(0, len(patches) - 1)):
-
         if Server:
             with open('/home/strathclyde/DATA/bigearth/sample/{}/{}_labels_metadata.json' \
                       .format(patches[i], patches[i])) as js:
@@ -105,10 +99,7 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
                 meta = json.load(js)
 
         labels = meta.get('labels')
-
         labels = [i for i in labels if i in gsi_classes]
-        print(labels)
-
         if labels == []:
             continue
         else:
@@ -116,20 +107,42 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
         tifs = glob(path_to_images + '{}/*.tif'.format(patches[i]), recursive=True)
         band_tifs = [tif for tif in tifs for band in bands if band in tif]
-
         band_tifs.sort()
         files2rio = list(map(rio.open, band_tifs))
         data = pl.stack(list(map(lambda x: x.read(1).astype(pl.int16), files2rio)))
         data = np.moveaxis(data, 0, 2)
         scipy.misc.toimage(data[...]).save(path_to_merge + patches[i] + '.png')
-
         path_col.append(path_to_merge + patches[i] + '.png')
         label_col.append(labels)
 
     d = {'path': path_col, 'labels': label_col}
     df = pd.DataFrame(d)
+    names2 = {v: int(k) for k, v in names.items()}
 
-    st1 = time.time ()
+    med_col = []
+    for entry in df.labels.values:
+        entry = [names2[k] for k in entry]
+        med_col.append((entry))
+
+    df['labels'] = pd.Series(data=med_col)
+    lst = df['labels'].values
+    classes = list(itertools.chain.from_iterable(lst))
+    en = time.time()
+
+    print('merged bands in {} sec'.format(float(en-st)))
+    print('One hot encoding...')
+
+    mlb = MultiLabelBinarizer()
+    df = df.join(pd.DataFrame(mlb.fit_transform(df['labels']),
+                          columns=mlb.classes_,
+                          index=df.index))
+
+    print('Dataframe ready')
+    return df, len(set(classes))
+
+# files2img = list(map(Image.fromarray, band_tifs))
+# split_point = 299
+# df, class_count = read_patch()
 
     # ldict = {
     #     1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
@@ -138,15 +151,6 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
     #     4: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
     #     5: [str(i) for i in range(35,45)]             # Water: 35 - 44
     # }
-
-    names2 = {v: int(k) for k, v in names.items()}
-
-    med_col = []
-    for entry in df.labels.values:
-        entry = [names2[k] for k in entry]
-        med_col.append((entry))
-    
-    df['labels'] = pd.Series(data=med_col)
 
     # ent_df = []
     # for entry in df.l2.values:
@@ -161,33 +165,6 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
     # df['labels'] = ent_df
     # df = df.drop(['l2'], axis=1)
-
-    en1 = time.time()
-
-    print('Class groups formed in: {} seconds'.format(en1-st1))
-
-    lst = df['labels'].values
-    classes = list(itertools.chain.from_iterable(lst))
-    en = time.time()
-
-    print('merged bands in {} sec'.format(float(en-st)))
-
-    # df = df[df['labels'].map(lambda d: len(d)) > 0]
-
-    print('One hot encoding...')
-
-    mlb = MultiLabelBinarizer()
-    df = df.join(pd.DataFrame(mlb.fit_transform(df['labels']),
-                          columns=mlb.classes_,
-                          index=df.index))
-
-    print('Dataframe ready')
-
-    return df, len(set(classes))
-
-# split_point = 299
-df, class_count = read_patch()
-
 
     # ldict = {
     #     1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
