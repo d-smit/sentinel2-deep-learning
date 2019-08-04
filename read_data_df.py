@@ -29,7 +29,7 @@ Server = False
 Server = True
 
 if Server:
-    path_to_images = root_path + '/DATA/bigearth/sample/'
+    path_to_images = root_path + '/DATA/bigearth/dump/sample/'
     path_to_merge = root_path + '/DATA/bigearth/merge2/'
 
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
@@ -42,7 +42,7 @@ else:
     with open('data/corine_labels.json') as jf:
         names = json.load(jf)
 
-gsi_labels = [1, 2, 3, 11, 12, 18, 23, 25, 41]
+gsi_labels = [2, 12, 18, 23, 25, 41]
 
 gsi_classes = [v for k,v in names.items() for lbl in gsi_labels if names[str(lbl)]==names[k]]
 
@@ -90,7 +90,7 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
     for i in tqdm(range(0, len(patches) - 1)):
         if Server:
-            with open('/home/strathclyde/DATA/bigearth/sample/{}/{}_labels_metadata.json' \
+            with open('/home/strathclyde/DATA/bigearth/dump/sample/{}/{}_labels_metadata.json' \
                       .format(patches[i], patches[i])) as js:
                 meta = json.load(js)
         else:

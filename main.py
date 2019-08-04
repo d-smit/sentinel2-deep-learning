@@ -51,7 +51,7 @@ cv = False
 # cv = True
 
 if Server:
-    path_to_images = root_path + '/DATA/bigearth/sample/'
+    path_to_images = root_path + '/DATA/bigearth/dump/sample/'
     path_to_model = root_path + '/DATA/bigearth/model/'
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
         names = json.load(jf)
@@ -111,48 +111,48 @@ print('Images ready in: {} minutes'.format(int(t/60)))
 
 def build_model():
 
-    # model = Sequential()
-    # model.add(Conv2D(32, (3, 3), input_shape=(120, 120, 3)))
-    # model.add(BatchNormalization())
-    # model.add(Activation("relu"))
-    # model.add(Dropout(0.25))
-    # model.add(Conv2D(32, (3, 3)))
-    # model.add(BatchNormalization())
-    # model.add(Activation("relu"))
-    # model.add(MaxPooling2D(pool_size=(2, 2)))
-    # model.add(Dropout(0.5))
-    # model.add(Conv2D(64, (3, 3)))
-    # model.add(BatchNormalization())
-    # model.add(Activation("relu"))
-    # model.add(Dropout(0.5))
-    # model.add(Conv2D(64, (3, 3)))
-    # model.add(BatchNormalization())
-    # model.add(Activation("relu"))
-    # model.add(MaxPooling2D(pool_size=(2, 2)))
-    # model.add(Dropout(0.75))
-    # model.add(Flatten())
-    # model.add(Dense(256))
-    # model.add(BatchNormalization())
-    # model.add(Activation("relu"))
-    # model.add(Dropout(0.2))
-    # model.add(Dense(class_count, activation='sigmoid'))
+    model = Sequential()
+    model.add(Conv2D(32, (3, 3), input_shape=(120, 120, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation("relu"))
+    model.add(Dropout(0.25))
+    model.add(Conv2D(32, (3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(64, (3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation("relu"))
+    model.add(Dropout(0.5))
+    model.add(Conv2D(64, (3, 3)))
+    model.add(BatchNormalization())
+    model.add(Activation("relu"))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.75))
+    model.add(Flatten())
+    model.add(Dense(256))
+    model.add(BatchNormalization())
+    model.add(Activation("relu"))
+    model.add(Dropout(0.2))
+    model.add(Dense(class_count, activation='sigmoid'))
 
-    base_model = DenseNet(include_top=False,
-                      weights='imagenet',
-                      input_shape=(120, 120, 3))
+    # base_model = DenseNet(include_top=False,
+    #                   weights='imagenet',
+    #                   input_shape=(120, 120, 3))
 
-    print(base_model.layers)
+    # print(base_model.layers)
 
-    for layer in base_model.layers[:7]:
-        layer.trainable = False
-    for layer in base_model.layers[7:]:
-        layer.trainable = True
+    # for layer in base_model.layers[:7]:
+    #     layer.trainable = False
+    # for layer in base_model.layers[7:]:
+    #     layer.trainable = True
 
-    top_model = base_model.output
-    top_model = GlobalAveragePooling2D()(top_model)
-    predictions = (Dense(class_count, activation='sigmoid'))(top_model)
+    # top_model = base_model.output
+    # top_model = GlobalAveragePooling2D()(top_model)
+    # predictions = (Dense(class_count, activation='sigmoid'))(top_model)
 
-    model = Model(inputs=base_model.input, outputs=predictions)
+    # model = Model(inputs=base_model.input, outputs=predictions)
 
     model.summary()
 
@@ -304,7 +304,7 @@ else:
                     seed = 1,
                     target_size = (120,120),
                     class_mode = 'categorical',
-                    batch_size = 64,
+                    batch_size = 32,
                     shuffle = True)
     
     train_cls = training_data.class_indices
@@ -325,7 +325,7 @@ else:
                     seed = 1,
                     target_size = (120,120),
                     class_mode = 'categorical',
-                    batch_size = 64,
+                    batch_size = 32,
                     shuffle = True)
     
     valid_cls = validation_data.class_indices
@@ -343,31 +343,51 @@ else:
                                monitor='val_categorical_accuracy',
                                verbose=1,
                                save_best_only=True,
+                               save_weights_only=False,
                                mode='max')
 
     history = model.fit_generator(training_data,
                                     steps_per_epoch = 2000,
-                                    epochs = 10,
+                                    epochs = 15,
                                     validation_data = validation_data,
                                     validation_steps = 1000,
-                                    callbacks=[reduce_lr, earlystopper],
+                                    callbacks=[reduce_lr, earlystopper, checkpointer],
                                     class_weight = class_weightings)
 
-    # test_arrays = np.empty(len(test))
+    # corines = list(counter.keys())
+
     # predictions = []
+
     # for i in test.path.values:
-    #     img_ar = cv2.imread(i)
+    #     img_ar = Image.open(i)
     #     img_ar = np.expand_dims(img_ar, axis=0)
     #     pred = model.predict(img_ar)
-    #     pred = pred.argsort()[-3:][::-1]
-    #     print(pred)
-    #     predictions.append(pred)
-    # print(predictions)
-    # # y_pred = model.predict(test_arrays)
-    # cf = confusion_matrix(test.iloc[:, 2:].values, predictions)
+    #     # pred = [l for l in pred]
+    #     # pred = np.argmax(pred, axis=1)
+    #     pred_abs = (pred > 0.5).astype(np.int)
+    #     pred_abs = pred_abs.tolist()
+    #     pred_abs = list(chain.from_iterable(pred_abs))
+
+    #     for i in (range(0, len(pred_abs))):
+    #         if pred_abs[i]:
+    #             pred_abs[i]=corines[i]
+    #     pred_abs = list(filter((0).__ne__, pred_abs))
+    #     predictions.append(pred_abs)
+
+    # predictions
+
+
+
+    # preds = [l.tolist() for sl in predictions for l in sl]
+
+    # actuals = [l for l in test.labels.values]# for l in sl]
+    # # actuals = MultiLabelBinarizer().fit_transform(actuals)
+
+    # cf = confusion_matrix(test.iloc[:, 2:], np.array(preds))
+
+    # cf = confusion_matrix(actuals, predictions)
+
     # print(cf)
-    # targs = ['Artificial', 'Agriculture', 'Forest & Vegetation', 'Bare space', 'Water']
-    # print(classification_report(valid_rep, y_pred, target_names=targs))
 
 if Server:
     plot_spot = root_path + '/DATA/bigearth/output/acc'
