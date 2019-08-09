@@ -82,7 +82,6 @@ def fold_df(df, k):
     X = df.path
     y = df.labels
     folds = KFold(n_splits=k, shuffle=True, random_state=1).split(X, y)
-
     return folds, X, y
 
 if cv:
@@ -90,20 +89,10 @@ if cv:
     folds, X_train, y_train = fold_df(df, k)
 
 class_rep = list(chain.from_iterable(df['labels']))
-
 counter=collections.Counter(class_rep)
 
 print('class dist: {}'.format(counter))
-# plt.bar(range(len(counter)), list(counter.values()), align='center')
-# plt.xticks(range(len(counter)), list(counter.keys()))
-# plt.title('Training classes')
-# plt.ion()
-# plt.show()
-
 print('class count: {}'.format(class_count))
-
-# print('df : {}'.format(df.head()))
-print(set(df['path'].apply(lambda x: os.path.exists(x))))
 
 en = time.time()
 t = en - st
@@ -112,29 +101,26 @@ print('Images ready in: {} minutes'.format(int(t/60)))
 def build_model():
 
     model = Sequential()
-    model.add(Conv2D(32, (3, 3), input_shape=(120, 120, 3)))
+    model.add(Conv2D(32, (3,3), input_shape=(120, 120, 3), activation='relu'))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(Dropout(0.25))
+    model.add(Conv2D(32,(3,3), activation='relu'))
     model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(Dropout(0.25))
-    model.add(Conv2D(32, (3, 3)))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3, 3)))
+    model.add(Conv2D(64, (3,3), activation='relu'))
+    # model.add(BatchNormalization())
+    # model.add(Activation("relu"))
+    # model.add(Dropout(0.5))
+    model.add(Conv2D(64, (3,3), activation='relu'))
     model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(Dropout(0.5))
-    model.add(Conv2D(64, (3, 3)))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
     model.add(MaxPooling2D(pool_size=(2, 2)))
-    model.add(Dropout(0.75))
-    model.add(Flatten())
-    model.add(Dense(256))
-    model.add(BatchNormalization())
-    model.add(Activation("relu"))
-    model.add(Dropout(0.2))
+    # model.add(Conv2D(128, (5, 5), activation='relu'))
+    # model.add(Conv2D(128, (5, 5), activation='relu'))
+    # model.add(Flatten())
+    model.add(Dropout(0.3))
+    # model.add(Dense(256))
     model.add(Dense(class_count, activation='sigmoid'))
 
     # base_model = DenseNet(include_top=False,
@@ -170,14 +156,12 @@ model.compile(optimizer=sgd, loss='binary_crossentropy',
 reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                               factor=0.2,
                               cooldown=1,
-                              patience=3,
+                              patience=2,
                               min_lr=0.0001)
 
 earlystopper = EarlyStopping(monitor='val_categorical_accuracy',
                              patience=5,
                              mode='max')
-
-
 
 print('Normalizing images...')
 
@@ -202,9 +186,12 @@ class_weightings = class_weight.compute_class_weight('balanced',
 print('Class weights {}'.format(class_weightings))
 
 # preprocessing_function=preprocessing,
-
-gen = ImageDataGenerator(rescale = 1./255,
-                         validation_split=0.2)
+# fill_mode="reflect",
+#                             rotation_range=45,
+#                             horizontal_flip=True,
+#                             vertical_flip=True,
+#                           validation_split=0.2
+gen = ImageDataGenerator()
 
 if cv:
     for j, (train_idx, val_idx) in enumerate(folds):
@@ -331,7 +318,7 @@ else:
     valid_cls = validation_data.class_indices
     valid_rep = validation_data.classes
     valid_rep = list(chain.from_iterable(valid_rep))
-    counter=collections.Counter(valid_rep)
+    counter = collections.Counter(valid_rep)
     
     print('Validation indices: {}'.format(validation_data.class_indices))
     print('valid class count: {}'.format(counter))
@@ -375,9 +362,6 @@ else:
     #     predictions.append(pred_abs)
 
     # predictions
-
-
-
     # preds = [l.tolist() for sl in predictions for l in sl]
 
     # actuals = [l for l in test.labels.values]# for l in sl]
@@ -415,7 +399,11 @@ plt.savefig('/home/strathclyde/DATA/bigearth/output/loss_15_10_0.1.jpg')
 
 # if __name__ == '__main__':
 #     rd
-
+# plt.bar(range(len(counter)), list(counter.values()), align='center')
+# plt.xticks(range(len(counter)), list(counter.keys()))
+# plt.title('Training classes')
+# plt.ion()
+# plt.show()
             # pred = pred.argsort()[-3:][::-1]
 
 # df['l2'] = df['labels'].apply(lambda x: str(x).strip('[]'))

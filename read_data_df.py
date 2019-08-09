@@ -16,6 +16,7 @@ import random
 import json
 import scipy.misc
 import itertools
+#from skimage.io import imread
 from tqdm import tqdm
 
 from PIL import Image
@@ -44,7 +45,7 @@ else:
 
 gsi_labels = [2, 12, 18, 23, 25, 41]
 
-gsi_classes = [v for k,v in names.items() for lbl in gsi_labels if names[str(lbl)]==names[k]]
+gsi_classes = [v for k,v in names.items() for l in gsi_labels if names[str(l)] == names[k]]
 
 patches = [patches for patches in os.listdir(path_to_images)]
 
@@ -100,6 +101,7 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
         labels = meta.get('labels')
         labels = [i for i in labels if i in gsi_classes]
+
         if labels == []:
             continue
         else:
@@ -109,6 +111,9 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
         band_tifs = [tif for tif in tifs for band in bands if band in tif]
         band_tifs.sort()
         files2rio = list(map(rio.open, band_tifs))
+
+        # file2img = list(map(imread, band_tifs))
+        # print(files2img)
         data = pl.stack(list(map(lambda x: x.read(1).astype(pl.int16), files2rio)))
         data = np.moveaxis(data, 0, 2)
         scipy.misc.toimage(data[...]).save(path_to_merge + patches[i] + '.png')
@@ -131,6 +136,9 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
     print('merged bands in {} sec'.format(float(en-st)))
     print('One hot encoding...')
+
+    if i==6:
+        print(df.labels)
 
     mlb = MultiLabelBinarizer()
     df = df.join(pd.DataFrame(mlb.fit_transform(df['labels']),
