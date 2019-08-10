@@ -7,10 +7,11 @@ rn.seed(1)
 
 from glob import glob
 import pandas as pd
-import rasterio as rio
-import pylab as pl
+from pandas import get_dummies
 import os
 import numpy as np
+from numpy import asarray
+from numpy import savez_compressed
 import time
 import random
 import json
@@ -22,7 +23,7 @@ from tqdm import tqdm
 from PIL import Image
 
 from sklearn.preprocessing import MultiLabelBinarizer
-
+from keras.preprocessing.image import load_img, img_to_array
 st = time.time()
 root_path = os.getcwd()
 
@@ -30,36 +31,30 @@ Server = False
 Server = True
 
 if Server:
-    path_to_images = root_path + '/DATA/bigearth/dump/sample/'
+    path_to_images = root_path + '/DATA/bigearth/sample/'
     path_to_merge = root_path + '/DATA/bigearth/merge2/'
-
+    dst = '/DATA'
     with open('/home/strathclyde/DATA/corine_labels.json') as jf:
         names = json.load(jf)
 
 else:
     path_to_images = root_path + '/data/sample/'
     path_to_merge = root_path + '/data/merge/'
-    
+    dst = '/data'
     with open('data/corine_labels.json') as jf:
         names = json.load(jf)
 
 gsi_labels = [2, 12, 18, 23, 25, 41]
-
 gsi_classes = [v for k,v in names.items() for l in gsi_labels if names[str(l)] == names[k]]
 
-patches = [patches for patches in os.listdir(path_to_images)]
-
-def get_patches(patches):
-
+def clean_patches(dst):
+    patches = [patches for patches in os.listdir(path_to_images)]
     st = time.time()
     valid_split = 0.3
     print('Unprocessed patch count: {}'.format(len(patches)))
-    dst = '/DATA' if Server == True else '/data'
+
     cloud_patches = pd.read_csv(root_path + '{}/patches_with_cloud_and_shadow.csv'.format(dst), 'r', header=None)
     snow_patches = pd.read_csv(root_path + '{}/patches_with_seasonal_snow.csv'.format(dst), 'r', header=None)
-
-    print('Purging cloud, shadow and snow patches...')
-
     patch_set = set(cloud_patches[0]).union(set(snow_patches[0]))
     patches = set(patches)
     patches = list(patches - patch_set)
@@ -67,31 +62,25 @@ def get_patches(patches):
     print('{} clean patches...'.format(len(patches)))
     split_point = int(len(patches) * valid_split)
     en = time.time()
-    print('Purge took: {} secs '.format(float(en-st)))
 
     return patches, split_point
 
-# patches, split_point = get_patches(patches)
+# p, s = clean_patches(dst)
 
-def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
+def merge_label_patches(patches, bands = ['B02', 'B03', 'B04'], nodata=-9999):
 
-    ''' Returns a NumPy array for each patch,
-    consisting of the four bands'''
     st = time.time()
-    print('Shuffling patches...')
     random.shuffle(patches)
-    cols = ['path', 'labels']
-    index = range(0, len(patches) - 1)
-    df = pd.DataFrame(index=index, columns=cols, dtype=object)
 
-    print('Merging RGB bands...')
+    image_paths = []
+    image_labels = []
 
-    path_col = []
-    label_col = []
+    print('Merging and tagging...')
 
     for i in tqdm(range(0, len(patches) - 1)):
+
         if Server:
-            with open('/home/strathclyde/DATA/bigearth/dump/sample/{}/{}_labels_metadata.json' \
+            with open('/home/strathclyde/DATA/bigearth/sample/{}/{}_labels_metadata.json' \
                       .format(patches[i], patches[i])) as js:
                 meta = json.load(js)
         else:
@@ -110,55 +99,79 @@ def read_patch(bands = ['B02', 'B03', 'B04'], nodata=-9999):
         tifs = glob(path_to_images + '{}/*.tif'.format(patches[i]), recursive=True)
         band_tifs = [tif for tif in tifs for band in bands if band in tif]
         band_tifs.sort()
-        files2rio = list(map(rio.open, band_tifs))
+        bands_to_stack = list(map(Image.open, band_tifs))
+        img = np.dstack(bands_to_stack)
+        scipy.misc.toimage(img).save(path_to_merge + patches[i] + '.png')
 
-        # file2img = list(map(imread, band_tifs))
-        # print(files2img)
-        data = pl.stack(list(map(lambda x: x.read(1).astype(pl.int16), files2rio)))
-        data = np.moveaxis(data, 0, 2)
-        scipy.misc.toimage(data[...]).save(path_to_merge + patches[i] + '.png')
-        path_col.append(path_to_merge + patches[i] + '.png')
-        label_col.append(labels)
+        image_paths.append(path_to_merge + patches[i] + '.png')
+        image_labels.append(labels)
 
-    d = {'path': path_col, 'labels': label_col}
+    d = {'path': image_paths, 'labels': image_labels}
     df = pd.DataFrame(d)
-    names2 = {v: int(k) for k, v in names.items()}
 
-    med_col = []
+    return df
+
+# df = merge_label_patches()
+
+def map_labels(df):
+
+    names2 = {v: int(k) for k, v in names.items()}
+    class_to_label = []
     for entry in df.labels.values:
         entry = [names2[k] for k in entry]
-        med_col.append((entry))
+        class_to_label.append((entry))
 
-    df['labels'] = pd.Series(data=med_col)
+    df['labels'] = pd.Series(data=class_to_label)
     lst = df['labels'].values
     classes = list(itertools.chain.from_iterable(lst))
-    en = time.time()
 
-    print('merged bands in {} sec'.format(float(en-st)))
-    print('One hot encoding...')
+    return df, len(set(classes))
 
-    if i==6:
-        print(df.labels)
+# df, classes = map_labels(df)
+
+def one_hot(df):
 
     mlb = MultiLabelBinarizer()
     df = df.join(pd.DataFrame(mlb.fit_transform(df['labels']),
-                          columns=mlb.classes_,
-                          index=df.index))
+                      columns=mlb.classes_,
+                      index=df.index))
+    return df
 
-    print('Dataframe ready')
-    return df, len(set(classes))
+def load_dataset():
 
-# files2img = list(map(Image.fromarray, band_tifs))
+    cleanpatch, split_point = clean_patches(dst)
+    df = merge_label_patches(cleanpatch)
+    df, classes = map_labels(df)
+    df = one_hot(df)
+
+    patches = []
+    for image in df.path.values:
+        patch = load_img(image, target_size=(120,120))
+        patch = img_to_array(patch, dtype='uint8')
+        patches.append(patch)
+
+    X = asarray(patches, dtype='uint8')
+    y = df.iloc[:,2:].values
+
+    return X, y
+st=time.time()
+X, y = load_dataset()
+savez_compressed('bigearth.npz', X, y)
+en=time.time()
+print('dataset ready in {}'.format(en-st))
+
 # split_point = 299
-# df, class_count = read_patch()
 
-    # ldict = {
-    #     1: [str(i) for i in range(1,12)],             # Artificial surfaces: 1 - 11
-    #     2: [str(i) for i in range(12,23)],            # Agriculture: 12 - 22
-    #     3: [str(i) for i in range(23,30)],            # Forest and vegetation: 23 - 30
-    #     4: [str(i) for i in range(30,35)],            # Open space with little veg: 30-34
-    #     5: [str(i) for i in range(35,45)]             # Water: 35 - 44
-    # }
+
+
+
+        # files2rio = list(map(rio.open, band_tifs))
+        # file2img = list(map(imread, band_tifs))
+        # data = pl.stack(list(map(lambda x: x.read(1).astype(pl.int16), files2rio)))
+        # data = np.moveaxis(data, 0, 2)
+
+
+
 
     # ent_df = []
     # for entry in df.l2.values:
