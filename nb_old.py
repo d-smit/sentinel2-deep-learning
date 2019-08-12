@@ -68,7 +68,7 @@ X_train, y_train = X, y
 def build_model():
 
     model = Sequential()
-    model.add(Dense(200, input_shape=(4,), activation="relu"))
+    model.add(Dense(200, input_shape=(len(bands),), activation="relu"))
     model.add(Dense(200, activation="relu"))
     model.add(Dense(200, activation='relu'))
     model.add(Dense(200, activation='relu'))
@@ -79,7 +79,7 @@ def build_model():
 
     model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
-                  metrics=['categorical_accuracy'])
+                  metrics=['acc'])
 
     return model
 
