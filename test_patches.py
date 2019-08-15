@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import rasterio as rio
+import pylab as pl
 from skimage.util import pad
 from skimage.io import imread
 from keras.models import load_model
@@ -9,7 +11,7 @@ import land_classification as lc
 root_path = os.getcwd()
 
 Server = True
-# Server = False
+Server = False
 
 if Server:
     path_to_image = root_path + '/data/masked.tif'
@@ -44,7 +46,7 @@ num_rows, num_cols, _ = img.shape
 
 image_probs = np.zeros((num_rows, num_cols, output_classes))
 
-row_of_patches = np.zeros((unpadded_cols, patch_rows, patch_cols, bands))
+row_of_patches = np.ones((unpadded_cols, patch_rows, patch_cols, bands))
 
 for row in tqdm(range(patch_rows, num_rows-patch_rows), desc="Processing..."):
 
@@ -58,18 +60,15 @@ for row in tqdm(range(patch_rows, num_rows-patch_rows), desc="Processing..."):
     image_probs[row, patch_cols:num_cols-patch_cols, :] = classified_row
 
 print('probs for image: {}'.format(image_probs))
-np.savez_compressed('scene_probs.npz', image_probs)
+np.savez_compressed('scene_probs_ex.npz', image_probs)
 
 probs = np.load('scene_probs.npz')
 probs = probs['arr_0']
 
-from scipy import stats
-stats.describe(probs)
-probs = np.argmax(probs, axis=1)
-lc.write_raster("outputs/lc_10m_test_proba.tif", probs, profile)
+probs = np.moveaxis(probs, 2, 0)
+probp = probs.max(axis=0)
+probp = np.expand_dims(probp, axis=0)
 
-
-
-
+lc.write_raster("outputs/lc_10m_5x5_probs2.tif", probp, profile)
 
 

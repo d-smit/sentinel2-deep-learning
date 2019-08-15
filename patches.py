@@ -5,28 +5,15 @@ tf.set_random_seed(SEED)
 np.random.seed(SEED)
 
 import os
-import geopandas as gpd
-from scipy import stats
-import matplotlib.pyplot as plt
-import json
-import pylab as pl
 import pandas as pd
-from fiona.crs import from_epsg
-from shapely.geometry import box as geobox
-import land_classification as lc
-from land_classification.preprocessing import create_raster_df, remove_outliers, onehot_targets, filter_low_counts, df_pca
-from land_classification.sampling import sample_raster
+import matplotlib.pyplot as plt
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten, GlobalAveragePooling2D
-from keras.layers import Conv2D, MaxPooling2D
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Dropout, Flatten, Conv2D
 from keras import optimizers
-from keras.regularizers import l2
 from sklearn.preprocessing import StandardScaler
 import collections
-import segment as seg
+# import segment as seg
 from time import time
-from skimage.io import imread
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
 
 from sklearn.utils import class_weight
@@ -34,81 +21,26 @@ from sklearn.utils import class_weight
 root_path = os.getcwd()
 
 Segment = False
-# Server = True
+Server = True
+# Server = False
 
 path_to_model = root_path + '/models/'
 
-# def prepare_scene():
-#     aoi_geo = geobox(-2.29, 51.51, -1.71, 51.61)
-#     aoi = gpd.GeoDataFrame([], geometry=[aoi_geo])
-#     aoi.crs = from_epsg(4326)
-#     aoi.to_file('data/aoi.geojson', driver='GeoJSON')
-    
-#     with open('data/labels.json') as jf:
-#         names = json.load(jf)
-#     s2_band = 'S2A.SAFE'
-
-#     data, profile = lc.merge_bands(s2_band, res='10')
-    
-#     lc.write_raster('data/merged.tif', data, profile)
-#     lc.mask_raster(aoi, 'data/merged.tif', 'data/masked.tif')
-
-#     return data, profile, names, aoi
-
-# data, profile, names, aoi = prepare_scene()
-# # tif = rio.open('data/masked.tif', 'r')
-
-# def segment_scene(tif):
-#     seg_df, segments, shapes = seg.create_segment_polygon(tif)
-#     seg.plot_segments(segments)
-#     zones_df, dists = seg.get_zones_and_dists(seg_df)
-#     zones_df = seg.tag_zones(zones_df, dists)
-#     seg_df['zone_id'] = zones_df['zone_id']
-
-#     return seg_df
-
-# # seg_df = segment_scene(tif)
-
-# pe = lc.PointExtractor(aoi)
-# points_df = pe.get_n(5000)
-
-# def create_df(df, bands= ['B02', 'B03', 'B04', 'B08']):
-
-#     points_df, values = sample_raster(df, 'data/Corine_S2_Proj_2.tif', bands=['labels'])
-
-#     if Segment:
-#         points_df = seg.match_segment_id(points_df, seg_df)
-#         points_df = sample_raster(points_df, 'data/masked.tif', bands=bands)
-#     else:
-#         points_df, values = sample_raster(points_df, 'data/masked.tif', bands=bands)
-
-#     # bands = ['B02_1', 'B03_1', 'B04_1','B08_1']
-#     points_df.to_file('points_shp_ex.geojson', driver='GeoJSON')
-#     np.savez_compressed('patch_arrays.npz', values)
-
-#     print('pixel df stored')
-
-#     return points_df, values
-
-# df, values = create_df(points_df)
-
-def check_sim(df):
-    for idx, row in df[label_cols].iterrows():
-        sim = [i for i in row if i != row[0]]
-        if (len(sim)) > int(len(row)/4):
-            df.drop(idx, inplace=True)
-    return df
-
 print('reading points df')
-df = gpd.read_file('points_shp_ex.geojson')
+
+
+
+df = pd.read_csv('points.csv')
+
 values = np.load('patch_arrays.npz')
 patches = values['arr_0']
 patches = patches.astype(float)
 patches = patches[:len(df)]
 
 def sort_cols(df):
+    df = df.drop([df.columns[0]], axis='columns')
     df = df.drop(['Lat', 'Lon', 'Val', 'geometry'], axis=1)
-    df = lc.calc_indices(df)
+    # df = calc_indices(df)
 
     label_cols = df.columns[pd.Series(df.columns).str.startswith('lab', na=False)]
 
@@ -120,18 +52,26 @@ def sort_cols(df):
     labels = label_cols[1:]
     df = df.drop(labels, axis=1)
 
-    return df
+    return df, label_cols
 
-df = sort_cols(df)
+df, label_cols = sort_cols(df)
+
+def check_sim(df):
+    for idx, row in df[label_cols].iterrows():
+        sim = [i for i in row if i != row[0]]
+        if (len(sim)) > int(len(row)/4):
+            df.drop(idx, inplace=True)
+    return df
 
 counter = collections.Counter(df.labels_1.values)
 print('class dist: {}'.format(counter))
 
 def clean_scale(df, patches):
 
-    # df = df[(np.abs(stats.zscore(df)) < 1.5).all(axis=1)]
-    # df = filter_low_counts(df, samples=100)
-    df = onehot_targets(df)
+
+    df.groupby('labels_1').filter(lambda x: x.shape[0] > 100)
+    onehot = pd.get_dummies(df['labels_1'])
+    df[onehot.columns] = onehot
     print('loading patch arrays and scaling...')
 
     arrays = []
@@ -144,6 +84,7 @@ def clean_scale(df, patches):
         patch = np.moveaxis(patch, 0, 2)
         arrays.append(patch)
 
+    np.savez_compressed('scl_arrays.npz', arrays)
     return df, arrays
 
 df, arrays = clean_scale(df, patches)
@@ -161,26 +102,27 @@ def build_model(in_shape=(X[1].shape), out_shape=len(y.columns)):
      model = Sequential()
      model.add(Conv2D(8, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same', input_shape=in_shape))
      model.add(Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-     # model.add(MaxPooling2D((2, 2)))
-     # model.add(Dropout(0.2))
+     model.add(Dropout(0.2))
      model.add(Conv2D(32, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
      model.add(Conv2D(64, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
-      # model.add(MaxPooling2D((2, 2)))
-      # model.add(Dropout(0.2))
+     # model.add(MaxPooling2D((2, 2)))
+     model.add(Dropout(0.2))
      model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
      # model.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform', padding='same'))
      # # model.add(MaxPooling2D((2, 2)))
-     # model.add(Dropout(0.2))
+     model.add(Dropout(0.2))
      model.add(Flatten())
-     model.add(Dense(3200, activation='relu', kernel_initializer='he_uniform'))
-     # model.add(Dropout(0.5))
+     # model.add(Dense(1200, activation='relu', kernel_initializer='he_uniform'))
+     model.add(Dense(2500, activation='relu', kernel_initializer='he_uniform'))
+     model.add(Dropout(0.2))
      model.add(Dense(out_shape, activation='softmax'))
-     adam = optimizers.Adam(lr=0.00075)
+     adam = optimizers.Adam(lr=0.00001)
 
      model.compile(optimizer=adam, loss='categorical_crossentropy', metrics=['accuracy'])
      return model
 
 model = build_model()
+
 class_weightings = class_weight.compute_class_weight('balanced',
                                                       df.labels_1.unique(),
                                                       df.labels_1.values)
@@ -188,8 +130,8 @@ class_weightings = class_weight.compute_class_weight('balanced',
 reduce_lr = ReduceLROnPlateau(monitor='val_loss',
                               factor=0.2,
                               cooldown=1,
-                              patience=5,
-                              min_lr=0.0000001)
+                              patience=10,
+                              min_lr=0.000001)
 
 earlystopper = EarlyStopping(monitor='val_acc',
                               patience=10,
@@ -208,17 +150,17 @@ checkpointer = ModelCheckpoint(path_to_model + 'CNNPatch' +
 history=model.fit(X_train,
           y_train,
           epochs=250,
-          batch_size=256,
-          validation_split = 0.1,
+          batch_size=512,
+          validation_split = 0.3,
           verbose=1,
           callbacks=[reduce_lr, checkpointer, earlystopper],
           class_weight=class_weightings)
 
 plt.plot(history.history['acc'])
 plt.plot(history.history['val_acc'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
 plt.legend(['train', 'test'], loc='lower right')
 plt.show()
 
@@ -227,9 +169,9 @@ if Server:
 
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.show()
 
@@ -239,7 +181,8 @@ if Server:
 # pred, proba, cm, algo = lc.classify(df, onehot=True)
 
 # def build_model():
-
+    # df = df[(np.abs(stats.zscore(df)) < 1.5).all(axis=1)]
+    # df = filter_low_counts(df, samples=100)
 #     model = Sequential()
 #     model.add(Dense(400, input_shape=(len(X.columns),), activation="relu"))
 #     # model.add(Dropout(rate=0.2))
@@ -294,3 +237,22 @@ if Server:
 # X = pd.DataFrame(scaled_data)
 # X_train = preprocessing.scale(X_train)
 # X_test = preprocessing.scale(X_test)
+# df = json.read_file('points_shp_exj.json')
+# with open('points_shp_ex.geojson') as f:
+#     data = json.load(f)
+
+# df = gpd.read_file('points_shp_ex.geojson')
+# import json
+# import pylab as pl
+# from fiona.crs import from_epsg
+# from shapely.geometry import box as geobox
+# import land_classification as lc
+# from land_classification.preprocessing import onehot_targets
+# from land_classification.raster import calc_indices
+# import json
+# import pylab as pl
+# from fiona.crs import from_epsg
+# from shapely.geometry import box as geobox
+# import land_classification as lc
+# from land_classification.preprocessing import onehot_targets
+# from land_classification.raster import calc_indices
