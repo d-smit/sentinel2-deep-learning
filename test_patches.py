@@ -18,8 +18,8 @@ if Server:
     path_to_model = root_path + '/models/CNNPatch_rgb_70-0.516.hdf5'
 
 else:
-    path_to_image = root_path + '/data/masked.tif'
-    # path_to_image = root_path + '/data/tci_medium.tif'
+    # path_to_image = root_path + '/data/masked.tif'
+    path_to_image = root_path + '/data/tci_medium.tif'
     path_to_model = root_path + '/models/CNNPatch_rgb_70-0.516.hdf5'
 
 scene = rio.open(path_to_image)
@@ -74,13 +74,12 @@ image_probs = np.expand_dims(image_probs, axis=0)
 print('probs for image: {}'.format(image_probs))
 
 np.savez_compressed('scene_probs_1_ex.npz', image_probs)
-
 np.savez_compressed('scene_labels_ex.npz', image_labels)
 
 probs = np.load('scene_probs_1.npz')
 probs = probs['arr_0']
 
-labels = np.load('scene_labels.npz')
+labels = np.load('scene_labels_ex.npz')
 labels = labels['arr_0'].astype(float)
 
 lc.write_raster("outputs/CNN_5x5_probs1.tif", probs, profile)
