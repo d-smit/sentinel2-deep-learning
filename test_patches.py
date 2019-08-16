@@ -15,11 +15,12 @@ Server = False
 
 if Server:
     path_to_image = root_path + '/data/masked.tif'
-    path_to_model = root_path + '/models/CNNPatch_rgb_01-0.449.hdf5'
+    path_to_model = root_path + '/models/CNNPatch_rgb_70-0.516.hdf5'
 
 else:
     path_to_image = root_path + '/data/masked.tif'
-    path_to_model = root_path + '/models/CNNPatch_rgb_01-0.449.hdf5'
+    # path_to_image = root_path + '/data/tci_medium.tif'
+    path_to_model = root_path + '/models/CNNPatch_rgb_70-0.516.hdf5'
 
 scene = rio.open(path_to_image)
 profile = scene.profile
@@ -42,33 +43,46 @@ img = pad(img, ((patch_cols, patch_cols),
                 (patch_rows, patch_rows),
                     (0, 0)), 'symmetric')
 
-num_rows, num_cols, _ = img.shape
+img_rows, img_cols, _ = img.shape
 
-image_probs = np.zeros((num_rows, num_cols, output_classes))
+image_probs = np.zeros((img_rows, img_cols, output_classes))
 
 row_of_patches = np.ones((unpadded_cols, patch_rows, patch_cols, bands))
 
-for row in tqdm(range(patch_rows, num_rows-patch_rows), desc="Processing..."):
+for row in tqdm(range(patch_rows, 6 - patch_rows), desc="Processing..."):
 
-    for idx, col in enumerate(range(patch_cols, num_cols-patch_cols)):
+    for idx, col in enumerate(range(patch_cols, img_cols-patch_cols)):
 
-        row_of_patches[...] = img[row-patch_rows_rnd:(row+1)+patch_rows_rnd,
-                                  col-patch_cols_rnd:(col+1)+patch_cols_rnd,
-                                  :]
+        row_of_patches[idx, ...] = img[row-patch_rows_rnd:(row+1)+patch_rows_rnd,
+                                      col-patch_cols_rnd:(col+1)+patch_cols_rnd,
+                                      :]
 
     classified_row = model.predict(row_of_patches, batch_size=1, verbose=1)
-    image_probs[row, patch_cols:num_cols-patch_cols, :] = classified_row
+
+    image_probs[row, patch_cols:img_cols-patch_cols, :] = classified_row
+
+# cut out padding to crop to image boundaries
+image_probs = image_probs[patch_rows:img_rows-patch_rows,
+                          patch_cols:img_cols-patch_cols, :]
+
+image_labels = np.argmax(image_probs, axis=2)
+image_labels = np.expand_dims(image_labels, axis=0)
+
+image_probs = np.sort(image_probs, axis=-1)[..., -1]
+image_probs = np.expand_dims(image_probs, axis=0)
 
 print('probs for image: {}'.format(image_probs))
-np.savez_compressed('scene_probs_ex.npz', image_probs)
 
-probs = np.load('scene_probs.npz')
+np.savez_compressed('scene_probs_1_ex.npz', image_probs)
+
+np.savez_compressed('scene_labels_ex.npz', image_labels)
+
+probs = np.load('scene_probs_1.npz')
 probs = probs['arr_0']
 
-probs = np.moveaxis(probs, 2, 0)
-probp = probs.max(axis=0)
-probp = np.expand_dims(probp, axis=0)
+labels = np.load('scene_labels.npz')
+labels = labels['arr_0'].astype(float)
 
-lc.write_raster("outputs/lc_10m_5x5_probs2.tif", probp, profile)
-
+lc.write_raster("outputs/CNN_5x5_probs1.tif", probs, profile)
+lc.write_raster("outputs/CNN_5x5_labels.tif", labels, profile)
 
