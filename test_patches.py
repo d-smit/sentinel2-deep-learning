@@ -49,7 +49,7 @@ image_probs = np.zeros((img_rows, img_cols, output_classes))
 
 row_of_patches = np.ones((unpadded_cols, patch_rows, patch_cols, bands))
 
-for row in tqdm(range(patch_rows, 6 - patch_rows), desc="Processing..."):
+for row in tqdm(range(patch_rows, img_cols - patch_rows), desc="Processing..."):
 
     for idx, col in enumerate(range(patch_cols, img_cols-patch_cols)):
 
@@ -57,16 +57,29 @@ for row in tqdm(range(patch_rows, 6 - patch_rows), desc="Processing..."):
                                       col-patch_cols_rnd:(col+1)+patch_cols_rnd,
                                       :]
 
+    # by sliding the patch window along the row, we classify one row per iteration
     classified_row = model.predict(row_of_patches, batch_size=1, verbose=1)
 
+    # adding that classified row to the first row of image_probs
     image_probs[row, patch_cols:img_cols-patch_cols, :] = classified_row
 
 # cut out padding to crop to image boundaries
 image_probs = image_probs[patch_rows:img_rows-patch_rows,
                           patch_cols:img_cols-patch_cols, :]
 
+'''
+Image_probs now has a prediction in the form of num_class length vector of
+probabilities for every pixel in the scene. 
+To get the label, take the position of the highest probability.
+'''
+
 image_labels = np.argmax(image_probs, axis=2)
 image_labels = np.expand_dims(image_labels, axis=0)
+
+'''
+To get the probability itself, we sort the vector and take the highest value.
+We then need to expand  the label and probability arrays back to 3D for plotting.
+'''
 
 image_probs = np.sort(image_probs, axis=-1)[..., -1]
 image_probs = np.expand_dims(image_probs, axis=0)
