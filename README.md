@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. We were aiming to consider spatial and textural elements of the scene, to assess their impact on classification. We had access to a single Sentinel-2 tile of South-West England. Our ground-truth was Corine Land-Cover mapping for the same area.  
+The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. A presentation, given to a technical and non-technical audience, can be found [here](presentation.pdf).
+
+We were aiming to consider spatial and textural elements of a scene, in order to assess their impact on classification. We had access to a single Sentinel-2 tile of South-West England. Our ground-truth was Corine Land-Cover mapping for the same area.  
 
 ## Data Preparation 
 
