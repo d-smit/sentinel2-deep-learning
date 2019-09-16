@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. We had access to a single Sentinel-2 tile of South-West England. Our ground-truth was Corine Land-Cover mapping for the same area.  
+The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. We were aiming to consider spatial and textural elements of the scene, to assess their impact on classification. We had access to a single Sentinel-2 tile of South-West England. Our ground-truth was Corine Land-Cover mapping for the same area.  
 
 ## Data Preparation 
 
-Running ```scene_prep.py``` will load in our test image. The script merges our 4 band tifs into one raster, and samples a training set of pixels from the raster.  
+Running ```scene_prep.py``` will load in our test image. We were only considering bands R,G,B and NIR. The script merges our 4 band tifs into one raster.  
 
 Initially having access to the 13 spectral bands captured by Sentinel-2, we merged RGB and Near Infrared bands:
 
@@ -14,47 +14,41 @@ Initially having access to the 13 spectral bands captured by Sentinel-2, we merg
 
 We then cropped and filtered. We increased the contrast and reduced the image to approximately 40km by 11km:
 
-![](/notes/s2_aoi2.png)
+![](/notes/s2_newaoi.png)
 
-Our ground-truth was Corine Land-Cover mapping for the same area:
-
-![](/notes/s2_corine1.png)
+Our ground-truth was Corine Land-Cover mapping for the same area.
 
 ## Segmentation 
 
-Our first methodology was segmenting the AOI using graph-based segmentation. Zonal statistics were acquired for each segment, and a hierarchy was formed. The process, shown below, was carried out using the functions in ```segment.py```. This was run on our AOI by running ```scene_prep.py``` with ```Segment = True```.
+First we wanted to consider the image texture, or colour. By setting ```Segment = True``` in ```scene_prep.py```, we could load in our image, import ```segment.py``` and segment the AOI. By splitting the AOI into segmented objects and running statistics on each segment, we could assign a value to each:
 
-![](/notes/s2_seg2.png)
+![](/notes/s2_seg1.png)
 
+We would then use the segment values, band values and Corine labels to form a training set. A pixel was given the segment value of the segment that contained it. We sampled our pixels using the ```sample_raster``` function, which randomly samples ```n``` pixels from the AOI. 
 
-We were considering NN architectures. We can see this below. 
+We were aiming to predict the Corine label for each pixel. The inclusion of the segment values would ideally improve the classification, based on the assumption that two separate pixels with the same segment type would more likely belong to the same class, making segment type a useful predictor. In ```test_segment.py```, we load in our dataset of pixel band values, segment types and Corine labels. We partition into training splits, and construct a triple-layered MLP. We also can run a baseline Random Forest, and an MLP trained without the segment type variable, to observe its effect.
 
-** SEG MODEL **
+We can see the results of this below:
 
-Our results showed slight increases in accuracy when including the segment tree level as a feature on our dataset of pixels. We now wanted to experiment with spatial relations in the AOI.
+![](/notes/s2_segresults.png)
+
+Our results showed slight increases in accuracy when including the segment tree level as a feature on our dataset of pixels. This was positive, as it meant textural considerations would improve accuracy. 
 
 ## Patch-Based Training 
 
-To do this, we wanted to train on patches of pixels, which also opened up the potential classification increase of convolutional layers from CNNs. We sampled individual pixels and constructed patches, as seen below.
+Next we wanted to experiment with spatial relations in the image. To do this, we wanted to train on patches of pixels, which meant exploring CNNs. Using ```scene_prep.py``` with ```Segment=False```, we sampled individual pixels. By entering ```sample_raster``` and applying a ```buffer``` to each sampled pixel, we could sample patches instead of pixels. 
 
-** PATCH CONSTRUCTION DIAGRAM **
+![](/notes/s2_patch1.png)
 
-The values of each patch then formed individuals of a new dataset. We wanted to learn a sampled pixels surrounding neighbourhood to improve classification of that individual pixel. By partitioning our AOI into overlapping tiles, we would be 
-able to train on patches of pixels and still provide pixel-level classification. 
+The values of each patch then formed individuals of a new dataset. This dataset is loaded in ```patches.py```. We wanted to learn a sampled pixels surrounding neighbourhood to improve classification of that individual pixel. Therefore our target was the label of each patch centre pixel. In ```patches.py``` we construct our CNN model:
 
-We can visualise the partitioning below. 
+![](/notes/s2_patch_model.png)
+![](/notes/s2_patchtables.png)
 
-** SLIDING WINDOW METHOD **
+The model was trained on up to 400,000 patches taken from the AOI. The patch-size ranged from 3x3 to 61x61, with the two top-performing models kept. We then wanted to predict over the entire scene. In ```test_patches.py``` we partition our AOI into overlapping tiles. This allows us to make a prediction for the entire image. 
 
-We were also able to experiment with CNNs. Using VGG-like structural considerations, we formed a model of repeating conv blocks, with no pooling. This was due to the small size of our patches. Using deep blocks, we constructed the model below.
+![](/notes/s2_patchpreds1.png)
 
-** PATCH MODEL 1 **
-
-We can see the results of the patch-based training over a range of patch-sizes below, compared against pixel only classifiers. 
-
-** TABLE OF PATCHES **
-** AOI PREDS ** 
-** AOI CONFIDENCE **
 
 ## Transfer Learning with BigEarthNet
 
