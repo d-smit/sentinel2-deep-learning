@@ -42,20 +42,27 @@ Next we wanted to experiment with spatial relations in the image. To do this, we
 
 The values of each patch then formed individuals of a new dataset. This dataset is loaded in ```patches.py```. We wanted to learn a sampled pixels surrounding neighbourhood to improve classification of that individual pixel. Therefore our target was the label of each patch centre pixel. In ```patches.py``` we construct our CNN model:
 
-![](/notes/s2_patch_model.png)
+![](/notes/s2_patchcnn.png)
 ![](/notes/s2_patchtables.png)
 
-The model was trained on up to 400,000 patches taken from the AOI. The patch-size ranged from 3x3 to 61x61, with the two top-performing models kept. We then wanted to predict over the entire scene. In ```test_patches.py``` we partition our AOI into overlapping tiles. This allows us to make a prediction for the entire image. 
+The model was trained on up to 400,000 patches taken from the AOI. The patch-size ranged from 3x3 to 61x61, with the two top-performing models kept. We then wanted to predict over the entire scene. In ```test_patches.py``` we partition our AOI into overlapping tiles. This allows us to make a prediction for the entire image, shown below for a CNN trained on 7x7 patches: 
 
 ![](/notes/s2_patchpreds1.png)
 
+We can take a closer look at the different patch size model predictions: 
+
+![](/notes/s2_patchcomp2.png)
 
 ## Transfer Learning with BigEarthNet
 
-We also wanted to experiment with transfer learning for the patch-based approach. BigEarthNet is one of the largest archives of Sentinel-2 data currently available. Each image is a 120x120 patch, with 13 spectral bands available per location. Choosing the same 4 bands we had used for the previous approaches, we reduced the dataset to images of only the classes represented in our AOI. We could then train a model on this and use it to predict over our AOI. We can see the model choice and results of the AOI-wide predictions below. 
+We also wanted to experiment with transfer learning for the patch-based approach. BigEarthNet is one of the largest archives of Sentinel-2 data currently available. Each image is a 120x120 patch, with 13 spectral bands available per location. We load in the dataset in ```read_bigearth.py```. Choosing the same 4 bands we had used for the previous approaches, we reduced the dataset to images of only the classes represented in our AOI. We could then train a model in ```train_bigearth.py```. 
 
-** big earth model **
+Our model struggled to get above 40% accuracy when testing on our AOI. 
 
-** big earth AOI preds **
+![](/notes/s2_bigearth.png)
+
+This could be due to the large patch sizes in the BigEarth dataset, which can overload the model with a high number of pixel values. 
 
 # Discussion 
+
+We saw that considering patches of pixels produces excellent shape detection and a moderate accuracy (highest over AOI was 66%). This was a greater accuracy than considering textural elements alone, making spatial considerations more influential for classifying images of this nature. We also discovered that the size of patches is a strong determinant for accuracy.
