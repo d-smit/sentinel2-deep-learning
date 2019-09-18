@@ -28,9 +28,13 @@ First we wanted to consider the image texture, or colour. By setting ```Segment 
 
 We would then use the segment values, band values and Corine labels to form a training set. A pixel was given the segment value of the segment that contained it. We sampled our pixels using the ```sample_raster``` function, which randomly samples ```n``` pixels from the AOI. 
 
+![](/notes/s2_seg2.png)
+
 We were aiming to predict the Corine label for each pixel. The inclusion of the segment values would ideally improve the classification, based on the assumption that two separate pixels with the same segment type would more likely belong to the same class, making segment type a useful predictor. In ```test_segment.py```, we load in our dataset of pixel band values, segment types and Corine labels. We partition into training splits, and construct a triple-layered MLP. We also can run a baseline Random Forest, and an MLP trained without the segment type variable, to observe its effect.
 
 We can see the results of this below:
+
+### Predictions
 
 ![](/notes/s2_segresults.png)
 
@@ -47,7 +51,9 @@ The values of each patch then formed individuals of a new dataset. This dataset 
 ![](/notes/s2_patchcnn.png)
 ![](/notes/s2_patchtables.png)
 
-The model was trained on up to 400,000 patches taken from the AOI. The patch-size ranged from 3x3 to 61x61, with the two top-performing models kept. We then wanted to predict over the entire scene. In ```test_patches.py``` we partition our AOI into overlapping tiles. This allows us to make a prediction for the entire image, shown below for a CNN trained on 7x7 patches: 
+The model was trained on up to 400,000 patches taken from the AOI. The patch-size ranged from 3x3 to 61x61, with the two top-performing models kept. We then wanted to predict over the entire scene. In ```test_patches.py``` we partition our AOI into overlapping tiles. This allows us to make a prediction for the entire image, shown below for a CNN trained on 7x7 patches.
+
+### Predictions
 
 ![](/notes/s2_patchpreds1.png)
 
