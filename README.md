@@ -8,11 +8,11 @@ We were aiming to assess how the inclusion of spatial and textural elements in t
 
 Running ```scene_prep.py``` will load in our test image. We were considering RGB and Near Infrared (NIR) bands. The script merges our 4 band tifs into one raster.  
 
-![](/plots/s2_aoi1.png)
+![](plots/s2_aoi1.png)
 
 We cropped the image to approximately 40km by 11km, and altered the contrast to improve visibility:
 
-![](/plots/s2_newaoi.png)
+![](plots/s2_newaoi.png)
 
 Our ground-truth data was downloaded from the freely-available [Corine Land-Cover](https://land.copernicus.eu/pan-european/corine-land-cover) maps.
 
@@ -24,7 +24,7 @@ We had a baseline accuracy from the classification results of a Random Forest Re
 
 Our first approach was considering the texture in the scene. Image texture is essentially the distribution of colour, and by partitioning an image based on its colour, you can form elements of similarly-coloured pixels. A method which accounts for this is graph-based segmentation, which we implemented here in ```segment.py```. First, we load in our scene in ```scene_prep.py```. By setting ```Segment = True```, we can then apply graph-based segmentation. 
 
-![](/plots/s2_seg1.png)
+![](plots/s2_seg1.png)
 
 By calculating the mean pixel value in each segment, we form a hierarchy of segment types. Each type represents an average colour. 
 
