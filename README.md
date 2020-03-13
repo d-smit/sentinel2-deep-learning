@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. A presentation, given to a both technical and non-technical audience, can be found [here](GSI_presentation.pdf).
+The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. A presentation, given to a both technical and non-technical audience, can be found [here](presentation.pdf).
 
 We were aiming to assess how the inclusion of spatial and textural elements in training data impacts classification accuracy. We had access to a single Sentinel-2 tile of South-West England.
 
