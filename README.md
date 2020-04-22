@@ -1,5 +1,9 @@
 # Novel Training Methodologies for Land Classification of Sentinel-2 Imagery
 
+### Note on IP
+
+Due to IP issues with the industrial partner, this project cannot be reproduced exactly, due to use of proprietary libraries and processes. Therefore, this is a high-level description of the scripts and steps taken. 
+
 ## Project Overview
 
 The goal of this project was to develop training methodologies for land-cover prediction using Sentinel-2 imagery. A presentation, given to a both technical and non-technical audience, can be found [here](presentation.pdf).
