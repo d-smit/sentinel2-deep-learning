@@ -2,7 +2,7 @@
 
 ### Note on IP
 
-Due to IP issues with the industrial partner, this project cannot be reproduced exactly, due to use of proprietary libraries and processes. Therefore, this is a high-level description of the scripts and steps taken. 
+Due to IP terms with the industrial partner, this project cannot be reproduced exactly, due to use of proprietary libraries and processes. Therefore, this is a high-level description of the scripts and an outline of the steps taken. 
 
 ## Project Overview
 
