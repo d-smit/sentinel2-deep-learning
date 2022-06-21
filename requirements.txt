@@ -10,7 +10,7 @@ kiwisolver==1.1.0
 -e land_classification
 matplotlib==3.0.3
 munch==2.3.2
-numpy==1.16.3
+numpy==1.22.0
 pandas==0.24.2
 pyparsing==2.4.0
 pyproj==2.1.3
