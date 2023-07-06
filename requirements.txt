@@ -18,7 +18,7 @@ python-dateutil==2.8.0
 pytz==2019.1
 rasterio==1.0.22
 scikit-learn==0.20.3
-scipy==1.2.1
+scipy==1.10.0
 seaborn==0.9.0
 Shapely==1.6.4.post2
 six==1.12.0
